@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-emerald-50/40 text-slate-800">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MHS Bag Price Calculator</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            300: '#86efac',
+                            400: '#4ade80',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        },
+                        ecolime: '#84cc16',
+                        forest: '#0f392b'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Three.js for 3D Bag Rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f0fdf4; }
+        ::-webkit-scrollbar-thumb { background: #a7f3d0; border-radius: 4px; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(16, 185, 129, 0.15);
+            box-shadow: 0 4px 20px -2px rgba(16, 185, 129, 0.05);
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col min-h-screen bg-emerald-50/40 text-slate-800 antialiased">
+
+    <!-- Header Navigation -->
+    <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-emerald-100 px-4 lg:px-8 py-3.5 flex items-center justify-between shadow-sm">
+        <div class="flex items-center space-x-3">
+            <div class="relative w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-700 via-green-600 to-lime-500 flex items-center justify-center text-white shadow-md shadow-emerald-600/20">
+                <i class="fa-solid fa-leaf text-xl text-white"></i>
+                <div class="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-lime-400 rounded-full border-2 border-white"></div>
+            </div>
+            <div>
+                <h1 class="text-xl font-extrabold tracking-tight text-slate-900 flex items-center gap-2">
+                    <span class="bg-gradient-to-r from-emerald-800 via-green-700 to-lime-600 bg-clip-text text-transparent">MHS Bag</span> Calculator
+                    <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">Catalog Specs</span>
+                </h1>
+                <p class="text-xs text-slate-500">Instant quotation based on catalog specs and quantity ranges</p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-3">
+            <button onclick="openCatalogModal()" class="px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs sm:text-sm font-semibold transition flex items-center gap-2 shadow-sm">
+                <i class="fa-solid fa-table-list text-emerald-600"></i>
+                <span>View Full Catalog</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Layout -->
+    <main class="flex-1 p-4 lg:p-6 max-w-7xl w-full mx-auto space-y-6">
+
+        <!-- Category Selection Tabs -->
+        <div class="flex items-center gap-2 overflow-x-auto pb-2">
+            <button id="cat-btn-all" onclick="filterCategory('all')" class="cat-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition bg-gradient-to-r from-emerald-700 to-green-600 text-white shadow-md shadow-emerald-700/20">
+                All Bag Types (<span id="count-all">0</span>)
+            </button>
+            <button id="cat-btn-box" onclick="filterCategory('Box Bag')" class="cat-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition bg-white text-slate-600 border border-emerald-100 hover:bg-emerald-50 hover:text-emerald-800">
+                Box Bags (<span id="count-box">0</span>)
+            </button>
+            <button id="cat-btn-dcut" onclick="filterCategory('D Cut Bag')" class="cat-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition bg-white text-slate-600 border border-emerald-100 hover:bg-emerald-50 hover:text-emerald-800">
+                D-Cut Bags (<span id="count-dcut">0</span>)
+            </button>
+            <button id="cat-btn-wcut" onclick="filterCategory('W Cut Bag')" class="cat-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition bg-white text-slate-600 border border-emerald-100 hover:bg-emerald-50 hover:text-emerald-800">
+                W-Cut Bags (<span id="count-wcut">0</span>)
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            <!-- Left Controls & Selection -->
+            <div class="lg:col-span-5 space-y-5">
+                
+                <!-- 3D Interactive Bag Model Canvas Card -->
+                <div class="glass-panel p-4 rounded-2xl relative overflow-hidden flex flex-col items-center justify-center bg-gradient-to-b from-white to-emerald-50/60 shadow-sm border border-emerald-100">
+                    <div class="w-full flex justify-between items-center mb-2 px-1">
+                        <span class="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
+                            <i class="fa-solid fa-cube text-emerald-600"></i>
+                            3D Realistic Non-Woven Bag Viewer
+                        </span>
+                        <span class="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100/80 text-emerald-800 border border-emerald-200/80 flex items-center gap-1">
+                            <i class="fa-solid fa-arrows-rotate text-[9px] animate-spin"></i> Interactive Fabric 3D
+                        </span>
+                    </div>
+
+                    <!-- Canvas Container -->
+                    <div id="bag-3d-canvas-container" class="w-full h-64 rounded-xl overflow-hidden relative cursor-grab active:cursor-grabbing bg-gradient-to-b from-slate-900/10 via-emerald-900/5 to-slate-100 flex items-center justify-center border border-emerald-100/80 shadow-inner">
+                        <div id="spinner-3d-loading" class="absolute text-xs text-emerald-700 font-semibold flex items-center gap-2">
+                            <i class="fa-solid fa-circle-notch animate-spin text-emerald-600"></i> Generating Non-Woven Texture...
+                        </div>
+                    </div>
+                    <p class="text-[11px] text-slate-500 mt-2 font-medium flex items-center gap-1">
+                        <i class="fa-solid fa-hand-pointer text-[10px] text-emerald-600"></i> Drag to rotate • Realistic polypropylene non-woven texture
+                    </p>
+                </div>
+
+                <!-- Select Bag Model -->
+                <div class="glass-panel p-5 rounded-2xl space-y-4">
+                    <h2 class="text-base font-bold text-slate-800 flex items-center border-b border-emerald-100 pb-2.5">
+                        <span class="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 text-xs flex items-center justify-center mr-2 font-extrabold">1</span>
+                        Select Bag Model
+                    </h2>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Catalog Item</label>
+                        <select id="bag-select" onchange="onBagSelectChanged()" class="w-full bg-emerald-50/50 border border-emerald-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+
+                    <!-- Selected Item Specs Summary -->
+                    <div id="bag-specs-card" class="bg-gradient-to-br from-emerald-50/80 to-green-50/60 rounded-xl p-3.5 border border-emerald-200/80 text-xs space-y-2">
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-500 font-medium">Reference / Use Case:</span>
+                            <span id="spec-ref" class="font-bold text-emerald-900">Small Keells</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 pt-1 border-t border-emerald-200/60 font-mono text-center">
+                            <div class="bg-white/80 p-2 rounded-lg border border-emerald-100 shadow-sm">
+                                <span class="text-[10px] text-slate-400 block uppercase font-sans font-semibold">GSM</span>
+                                <span id="spec-gsm" class="text-slate-800 font-bold">85-90</span>
+                            </div>
+                            <div class="bg-white/80 p-2 rounded-lg border border-emerald-100 shadow-sm">
+                                <span class="text-[10px] text-slate-400 block uppercase font-sans font-semibold">Dimensions</span>
+                                <span id="spec-dims" class="text-slate-800 font-bold">32×36×11</span>
+                            </div>
+                            <div class="bg-white/80 p-2 rounded-lg border border-emerald-100 shadow-sm">
+                                <span class="text-[10px] text-slate-400 block uppercase font-sans font-semibold">Base Cost</span>
+                                <span id="spec-cost" class="text-emerald-700 font-bold">45.55</span>
+                            </div>
+                        </div>
+                    <!-- Quantity & Base Cost -->
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-500 mb-1.5">
+                            <label class="font-semibold text-slate-700">Order Quantity</label>
+                            <span id="tier-badge" class="bg-emerald-100 text-emerald-800 font-mono text-[11px] px-2 py-0.5 rounded font-semibold border border-emerald-200">Tier: 500-4,999 (+30%)</span>
+                        </div>
+                        <input type="number" id="qty-input" value="500" min="1" step="10" oninput="markUnsaved()" class="w-full bg-emerald-50/50 border border-emerald-200 rounded-xl px-3 py-2 text-base font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white">
+                    </div>
+
+                    <!-- Quick Quantity Presets -->
+                    <div class="flex flex-wrap gap-1.5 pt-1">
+                        <button onclick="setQty(100)" class="text-xs bg-white hover:bg-emerald-50 text-slate-700 px-2.5 py-1 rounded-lg border border-emerald-200 transition font-mono font-semibold shadow-sm">100</button>
+                        <button onclick="setQty(500)" class="text-xs bg-white hover:bg-emerald-50 text-slate-700 px-2.5 py-1 rounded-lg border border-emerald-200 transition font-mono font-semibold shadow-sm">500</button>
+                        <button onclick="setQty(1000)" class="text-xs bg-white hover:bg-emerald-50 text-slate-700 px-2.5 py-1 rounded-lg border border-emerald-200 transition font-mono font-semibold shadow-sm">1,000</button>
+                        <button onclick="setQty(5000)" class="text-xs bg-white hover:bg-emerald-50 text-slate-700 px-2.5 py-1 rounded-lg border border-emerald-200 transition font-mono font-semibold shadow-sm">5,000</button>
+                        <button onclick="setQty(10000)" class="text-xs bg-white hover:bg-emerald-50 text-slate-700 px-2.5 py-1 rounded-lg border border-emerald-200 transition font-mono font-semibold shadow-sm">10,000+</button>
+                    </div>
+
+                    <!-- Base Cost Editable Input -->
+                    <div class="pt-3 border-t border-emerald-100">
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-xs font-semibold text-slate-600">Unit Base Cost (Rs / LKR)</label>
+                            <button onclick="resetBaseCost()" class="text-[11px] font-semibold text-emerald-700 hover:text-emerald-900 hover:underline">Reset to Catalog Cost</button>
+                        </div>
+                        <input type="number" id="base-cost-input" step="0.01" oninput="markUnsaved()" class="w-full bg-emerald-50/50 border border-emerald-200 rounded-xl px-3 py-1.5 text-sm font-mono font-bold text-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white">
+                    </div>
+
+                    <!-- Optional Addons -->
+                    <div class="pt-3 border-t border-emerald-100 space-y-2">
+                        <label class="block text-xs font-semibold text-slate-600">Optional Printing / Addon (Per Bag)</label>
+                        <input type="number" id="addon-cost-input" value="0.00" step="0.5" oninput="markUnsaved()" placeholder="0.00" class="w-full bg-emerald-50/50 border border-emerald-200 rounded-xl px-3 py-1.5 text-sm font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white">
+                    </div>
+
+                    <!-- Save Changes Button (Appears on value edit) -->
+                    <div id="save-changes-container" class="hidden pt-3 border-t border-emerald-200 transition-all duration-300">
+                        <button onclick="saveAndApplyChanges()" class="w-full bg-gradient-to-r from-emerald-600 via-green-600 to-lime-600 hover:from-emerald-700 hover:to-lime-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2 text-sm transition transform active:scale-95">
+                            <i class="fa-solid fa-floppy-disk text-lime-300 text-base"></i>
+                            <span>Save Changes</span>
+                            <span class="text-[10px] bg-white/20 px-2 py-0.5 rounded-full font-mono text-lime-100">Click to Calculate</span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Results & Quotation Output -->
+            <div class="lg:col-span-7 space-y-6">
+
+                <!-- Hero Price Summary Card -->
+                <div class="p-6 rounded-2xl bg-gradient-to-br from-emerald-800 via-emerald-900 to-green-950 text-white shadow-xl shadow-emerald-900/10 border border-emerald-700 relative overflow-hidden">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-emerald-700/60 pb-5">
+                        <div>
+                            <span class="text-xs font-bold text-lime-400 uppercase tracking-wider flex items-center gap-1.5">
+                                <i class="fa-solid fa-calculator"></i> Calculated Price / Bag
+                            </span>
+                            <div class="flex items-baseline space-x-1 mt-1">
+                                <span class="text-3xl sm:text-4xl font-extrabold text-white font-mono" id="out-unit-price">Rs. 59.22</span>
+                                <span class="text-xs text-emerald-200">/ bag</span>
+                            </div>
+                        </div>
+
+                        <div class="bg-emerald-950/80 p-3.5 rounded-xl border border-emerald-700/80 text-right min-w-[180px]">
+                            <span class="text-[11px] text-emerald-300 block uppercase font-medium">Total Order Value</span>
+                            <span class="text-2xl font-extrabold text-lime-400 font-mono" id="out-total-price">Rs. 29,607.50</span>
+                        </div>
+                    </div>
+
+                    <!-- Detailed Formula Breakdown -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 text-xs">
+                        <div class="bg-emerald-950/40 p-2 rounded-lg border border-emerald-800">
+                            <span class="text-emerald-300 block text-[11px]">Base Cost</span>
+                            <span class="font-mono font-bold text-white" id="break-base">Rs. 45.55</span>
+                        </div>
+                        <div class="bg-emerald-950/40 p-2 rounded-lg border border-emerald-800">
+                            <span class="text-emerald-300 block text-[11px]">Applied Markup</span>
+                            <span class="font-mono font-bold text-lime-400" id="break-markup">+30%</span>
+                        </div>
+                        <div class="bg-emerald-950/40 p-2 rounded-lg border border-emerald-800">
+                            <span class="text-emerald-300 block text-[11px]">Subtotal w/ Markup</span>
+                            <span class="font-mono font-bold text-white" id="break-subtotal">Rs. 59.22</span>
+                        </div>
+                        <div class="bg-emerald-950/40 p-2 rounded-lg border border-emerald-800">
+                            <span class="text-emerald-300 block text-[11px]">Addons / Print</span>
+                            <span class="font-mono font-bold text-white" id="break-addon">Rs. 0.00</span>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 flex gap-3">
+                        <button onclick="copyQuoteSummary()" class="flex-1 bg-gradient-to-r from-lime-500 to-emerald-500 hover:from-lime-400 hover:to-emerald-400 text-slate-950 font-bold py-3 px-4 rounded-xl shadow-lg transition flex items-center justify-center gap-2 text-sm">
+                            <i class="fa-solid fa-copy"></i>
+                            <span id="copy-btn-label">Copy Order Quotation</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Catalog Quantity Range Tier Table -->
+                <div class="glass-panel p-5 rounded-2xl space-y-3">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-layer-group text-emerald-600"></i>
+                            Catalog Quantity Pricing Matrix
+                        </h3>
+                        <span class="text-xs text-slate-500 font-medium">Rule-based markups</span>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse font-mono">
+                            <thead>
+                                <tr class="border-b border-emerald-100 text-slate-500 font-sans font-semibold">
+                                    <th class="py-2.5 px-3">Quantity Range</th>
+                                    <th class="py-2.5 px-3">Markup %</th>
+                                    <th class="py-2.5 px-3">Calculated Price / Bag</th>
+                                    <th class="py-2.5 px-3">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tier-rows" class="divide-y divide-emerald-50 text-slate-700">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- FULL CATALOG OVERVIEW MODAL -->
+    <div id="catalog-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white border border-emerald-100 max-w-4xl w-full rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh]">
+            <div class="p-4 border-b border-emerald-100 flex justify-between items-center bg-emerald-50/50">
+                <h3 class="font-bold text-slate-900 text-base flex items-center gap-2">
+                    <i class="fa-solid fa-boxes-packing text-emerald-600"></i> Complete Catalog Specifications Reference
+                </h3>
+                <button onclick="closeCatalogModal()" class="text-slate-400 hover:text-slate-700 p-1 rounded-lg">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="p-4 overflow-y-auto flex-1">
+                <table class="w-full text-left text-xs border-collapse">
+                    <thead>
+                        <tr class="border-b border-emerald-100 text-slate-500 font-mono font-semibold">
+                            <th class="py-2 px-2">Bag Model</th>
+                            <th class="py-2 px-2">Category</th>
+                            <th class="py-2 px-2">Reference</th>
+                            <th class="py-2 px-2">GSM</th>
+                            <th class="py-2 px-2">Width</th>
+                            <th class="py-2 px-2">Height</th>
+                            <th class="py-2 px-2">Gusset</th>
+                            <th class="py-2 px-2">Base Cost</th>
+                            <th class="py-2 px-2">Select</th>
+                        </tr>
+                    </thead>
+                    <tbody id="catalog-modal-table" class="divide-y divide-emerald-50 font-mono text-slate-700">
+                        <!-- Populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toast" class="fixed bottom-5 right-5 z-50 bg-emerald-800 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center space-x-2 transition-all duration-300 transform translate-y-20 opacity-0 pointer-events-none text-xs font-semibold border border-emerald-700">
+        <i class="fa-solid fa-check-circle text-lime-400 text-base"></i>
+        <span id="toast-text">Notification message</span>
+    </div>
+
+    <!-- JavaScript Data Logic -->
+    <script>
+        // Exact real data extracted from catalog details document
+        const BAG_CATALOG = [
+            {
+                id: 'box_type_1',
+                category: 'Box Bag',
+                name: 'Box Bag Type 1 (Small)',
+                ref: 'Small Keells',
+                gsm: '85-90',
+                width: 32,
+                height: 36,
+                gusset: 11,
+                minQty: 500,
+                cost: 45.55
+            },
+            {
+                id: 'box_type_2',
+                category: 'Box Bag',
+                name: 'Box Bag Type 2 (Large)',
+                ref: 'Keells',
+                gsm: '90-100',
+                width: 34,
+                height: 37,
+                gusset: 18,
+                minQty: 500,
+                cost: 52.00
+            },
+            {
+                id: 'box_type_3',
+                category: 'Box Bag',
+                name: 'Box Bag Type 3',
+                ref: 'Cargills',
+                gsm: '90',
+                width: 42,
+                height: 37,
+                gusset: 16,
+                minQty: 500,
+                cost: 58.50
+            },
+            {
+                id: 'box_type_4',
+                category: 'Box Bag',
+                name: 'Box Bag Type 4 (Full Handle)',
+                ref: 'Arpico',
+                gsm: '90',
+                width: 34,
+                height: 37,
+                gusset: 16,
+                minQty: 500,
+                cost: 50.00
+            },
+            {
+                id: 'box_new_cargills',
+                category: 'Box Bag',
+                name: 'Box Bag (New Cargills)',
+                ref: 'New Cargills Bag',
+                gsm: '85',
+                width: 25,
+                height: 31,
+                gusset: 12,
+                minQty: 500,
+                cost: 38.00
+            },
+            {
+                id: 'd_cut_small',
+                category: 'D Cut Bag',
+                name: 'D Cut Bag Small',
+                ref: 'Small Rice Bag / Document 10kg',
+                gsm: '80',
+                width: 25,
+                height: 33,
+                gusset: 0,
+                minQty: 500,
+                cost: 22.50
+            },
+            {
+                id: 'd_cut_med',
+                category: 'D Cut Bag',
+                name: 'D Cut Bag Medium',
+                ref: 'Document / Rice Bag',
+                gsm: '43',
+                width: 43,
+                height: 56,
+                gusset: 0,
+                minQty: 500,
+                cost: 32.00
+            },
+            {
+                id: 'd_cut_large',
+                category: 'D Cut Bag',
+                name: 'D Cut Bag Large',
+                ref: 'Rice Bag',
+                gsm: '100',
+                width: 33,
+                height: 43,
+                gusset: 0,
+                minQty: 500,
+                cost: 35.00
+            },
+            {
+                id: 'd_cut_prima',
+                category: 'D Cut Bag',
+                name: 'D Cut Bag (Prima 5kg)',
+                ref: 'Prima 5kg',
+                gsm: '37',
+                width: 37,
+                height: 50,
+                gusset: 0,
+                minQty: 500,
+                cost: 28.00
+            },
+            {
+                id: 'w_cut_med',
+                category: 'W Cut Bag',
+                name: 'W Cut Bag Medium',
+                ref: 'Pharmacy Bag',
+                gsm: '30',
+                width: 25,
+                height: 45,
+                gusset: 12,
+                minQty: 500,
+                cost: 14.50
+            },
+            {
+                id: 'w_cut_large',
+                category: 'W Cut Bag',
+                name: 'W Cut Bag Large',
+                ref: 'Pharmacy Bag',
+                gsm: '30',
+                width: 29,
+                height: 55,
+                gusset: 14,
+                minQty: 500,
+                cost: 18.20
+            },
+            {
+                id: 'w_cut_xl',
+                category: 'W Cut Bag',
+                name: 'W Cut Bag XL',
+                ref: 'Pharmacy Bag',
+                gsm: '30',
+                width: 33,
+                height: 59,
+                gusset: 16,
+                minQty: 500,
+                cost: 22.00
+            }
+        ];
+
+        // Quantity Markup Tiers Rule Set from PDF Catalog
+        const TIERS = [
+            { min: 100, max: 499, markup: 0.50, label: '100 - 499 (+50%)' },
+            { min: 500, max: 4999, markup: 0.30, label: '500 - 4,999 (+30%)' },
+            { min: 5000, max: 9999, markup: 0.20, label: '5,000 - 9,999 (+20%)' },
+            { min: 10000, max: Infinity, markup: 0.15, label: '10,000+ (+15%)' }
+        ];
+
+        let activeCategory = 'all';
+        let selectedBag = BAG_CATALOG[0];
+        let hasUnsavedChanges = false;
+
+        // Three.js 3D Viewer Global State
+        let scene, camera, renderer, bagGroup;
+        let nonWovenBumpMap, nonWovenFaceTexture;
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+
+        window.onload = function() {
+            updateCategoryCounts();
+            populateBagDropdown();
+            renderCatalogModalTable();
+            createProceduralTextures();
+            init3DBagViewer();
+            onBagSelected(true);
+        };
+
+        // Generates realistic Non-Woven Polypropylene dimple pattern & logo texture
+        function createProceduralTextures() {
+            // 1. Create Bump Map for Dimpled Non-Woven Fabric Texture
+            const bumpCanvas = document.createElement('canvas');
+            bumpCanvas.width = 512;
+            bumpCanvas.height = 512;
+            const ctx = bumpCanvas.getContext('2d');
+
+            ctx.fillStyle = '#808080';
+            ctx.fillRect(0, 0, 512, 512);
+
+            // Draw micro dot dimple grid typical for thermal-bonded non-woven fabric
+            const dotSpacing = 8;
+            for (let x = 0; x < 512; x += dotSpacing) {
+                for (let y = 0; y < 512; y += dotSpacing) {
+                    const shift = ((y / dotSpacing) % 2 === 0) ? 0 : dotSpacing / 2;
+                    const px = (x + shift) % 512;
+                    
+                    // Embossed dot gradient
+                    const grad = ctx.createRadialGradient(px, y, 0, px, y, 2.5);
+                    grad.addColorStop(0, '#ffffff'); // Raised highlight
+                    grad.addColorStop(0.7, '#a0a0a0');
+                    grad.addColorStop(1, '#404040'); // Shadow indent
+                    
+                    ctx.fillStyle = grad;
+                    ctx.beginPath();
+                    ctx.arc(px, y, 2.2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            nonWovenBumpMap = new THREE.CanvasTexture(bumpCanvas);
+            nonWovenBumpMap.wrapS = THREE.RepeatWrapping;
+            nonWovenBumpMap.wrapT = THREE.RepeatWrapping;
+            nonWovenBumpMap.repeat.set(4, 4);
+
+            // 2. Create Front Printed Face Texture with MHS Logo & Fabric Color
+            const faceCanvas = document.createElement('canvas');
+            faceCanvas.width = 512;
+            faceCanvas.height = 512;
+            const fCtx = faceCanvas.getContext('2d');
+
+            // Rich Eco Green Fabric Background
+            fCtx.fillStyle = '#15803d';
+            fCtx.fillRect(0, 0, 512, 512);
+
+            // Subtle non-woven noise overlay
+            fCtx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+            for (let i = 0; i < 3000; i++) {
+                fCtx.fillRect(Math.random() * 512, Math.random() * 512, 1.5, 1.5);
+            }
+
+            // Draw MHS Printed Branding on Front
+            // Eco Leaf Logo Icon
+            fCtx.save();
+            fCtx.translate(256, 210);
+            
+            // Leaf graphic outline
+            fCtx.fillStyle = '#84cc16'; // Lime
+            fCtx.beginPath();
+            fCtx.moveTo(0, -50);
+            fCtx.bezierCurveTo(40, -50, 60, -10, 0, 50);
+            fCtx.bezierCurveTo(-60, -10, -40, -50, 0, -50);
+            fCtx.fill();
+
+            // Leaf vein
+            fCtx.strokeStyle = '#15803d';
+            fCtx.lineWidth = 3;
+            fCtx.beginPath();
+            fCtx.moveTo(0, -40);
+            fCtx.quadraticCurveTo(5, 0, 0, 35);
+            fCtx.stroke();
+            fCtx.restore();
+
+            // Brand Typography
+            fCtx.fillStyle = '#ffffff';
+            fCtx.font = 'bold 38px Inter, sans-serif';
+            fCtx.textAlign = 'center';
+            fCtx.fillText('MHS PACKAGING', 256, 310);
+
+            fCtx.fillStyle = '#a3e635';
+            fCtx.font = '600 18px Inter, sans-serif';
+            fCtx.fillText('100% ECO NON-WOVEN', 256, 340);
+
+            // Stitched seam border line
+            fCtx.strokeStyle = 'rgba(255,255,255,0.4)';
+            fCtx.lineWidth = 2;
+            fCtx.setLineDash([8, 6]);
+            fCtx.strokeRect(20, 20, 472, 472);
+
+            nonWovenFaceTexture = new THREE.CanvasTexture(faceCanvas);
+        }
+
+        function init3DBagViewer() {
+            const container = document.getElementById('bag-3d-canvas-container');
+            const spinner = document.getElementById('spinner-3d-loading');
+
+            const width = container.clientWidth || 320;
+            const height = container.clientHeight || 256;
+
+            scene = new THREE.Scene();
+
+            camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 1000);
+            camera.position.set(0, 0.6, 4.2);
+            camera.lookAt(0, 0, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+            container.appendChild(renderer.domElement);
+            if (spinner) spinner.style.display = 'none';
+
+            // Studio Lighting for Fabric Depth
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.95);
+            scene.add(ambientLight);
+
+            const mainLight = new THREE.DirectionalLight(0xffffff, 0.85);
+            mainLight.position.set(4, 8, 6);
+            mainLight.castShadow = true;
+            mainLight.shadow.mapSize.width = 1024;
+            mainLight.shadow.mapSize.height = 1024;
+            scene.add(mainLight);
+
+            const rimLight = new THREE.DirectionalLight(0xa3e635, 0.4);
+            rimLight.position.set(-5, 3, -4);
+            scene.add(rimLight);
+
+            // Soft Ground Shadow Plane
+            const shadowGeo = new THREE.PlaneGeometry(6, 6);
+            const shadowCanvas = document.createElement('canvas');
+            shadowCanvas.width = 128; shadowCanvas.height = 128;
+            const sCtx = shadowCanvas.getContext('2d');
+            const sGrad = sCtx.createRadialGradient(64, 64, 10, 64, 64, 60);
+            sGrad.addColorStop(0, 'rgba(0, 20, 10, 0.35)');
+            sGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            sCtx.fillStyle = sGrad;
+            sCtx.fillRect(0,0,128,128);
+
+            const shadowMat = new THREE.MeshBasicMaterial({
+                map: new THREE.CanvasTexture(shadowCanvas),
+                transparent: true,
+                depthWrite: false
+            });
+            const shadowPlane = new THREE.Mesh(shadowGeo, shadowMat);
+            shadowPlane.rotation.x = -Math.PI / 2;
+            shadowPlane.position.y = -1.05;
+            scene.add(shadowPlane);
+
+            bagGroup = new THREE.Group();
+            scene.add(bagGroup);
+
+            // Mouse / Touch Interaction Controls
+            const dom = renderer.domElement;
+            dom.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+
+            dom.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const deltaX = e.clientX - previousMousePosition.x;
+                const deltaY = e.clientY - previousMousePosition.y;
+
+                bagGroup.rotation.y += deltaX * 0.008;
+                bagGroup.rotation.x += deltaY * 0.006;
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+
+            window.addEventListener('mouseup', () => { isDragging = false; });
+
+            dom.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    isDragging = true;
+                    previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                }
+            });
+
+            dom.addEventListener('touchmove', (e) => {
+                if (!isDragging || e.touches.length !== 1) return;
+                const deltaX = e.touches[0].clientX - previousMousePosition.x;
+                const deltaY = e.touches[0].clientY - previousMousePosition.y;
+
+                bagGroup.rotation.y += deltaX * 0.008;
+                bagGroup.rotation.x += deltaY * 0.006;
+                previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            });
+
+            window.addEventListener('touchend', () => { isDragging = false; });
+
+            window.addEventListener('resize', () => {
+                if (!container || !renderer || !camera) return;
+                const w = container.clientWidth;
+                const h = container.clientHeight;
+                camera.aspect = w / h;
+                camera.updateProjectionMatrix();
+                renderer.setSize(w, h);
+            });
+
+            function animate3D() {
+                requestAnimationFrame(animate3D);
+                if (!isDragging && bagGroup) {
+                    bagGroup.rotation.y += 0.005;
+                }
+                renderer.render(scene, camera);
+            }
+            animate3D();
+        }
+
+        function update3DBagModel() {
+            if (!bagGroup) return;
+
+            while (bagGroup.children.length > 0) {
+                const obj = bagGroup.children[0];
+                if (obj.geometry) obj.geometry.dispose();
+                if (obj.material) {
+                    if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+                    else obj.material.dispose();
+                }
+                bagGroup.remove(obj);
+            }
+
+            // Bag dimensions scaling
+            const rawW = selectedBag.width || 30;
+            const rawH = selectedBag.height || 35;
+            const rawG = selectedBag.gusset || 3;
+
+            const maxDim = Math.max(rawW, rawH);
+            const scaleFactor = 1.75 / maxDim;
+
+            const w = rawW * scaleFactor;
+            const h = rawH * scaleFactor;
+            const d = Math.max(rawG * scaleFactor, 0.12);
+
+            // Realistic Non-Woven Polypropylene Materials
+            const bodySideMat = new THREE.MeshStandardMaterial({
+                color: 0x15803d, // Eco Green
+                roughness: 0.85,
+                metalness: 0.02,
+                bumpMap: nonWovenBumpMap,
+                bumpScale: 0.015
+            });
+
+            const frontPrintedMat = new THREE.MeshStandardMaterial({
+                map: nonWovenFaceTexture,
+                roughness: 0.8,
+                metalness: 0.02,
+                bumpMap: nonWovenBumpMap,
+                bumpScale: 0.015
+            });
+
+            const handleMat = new THREE.MeshStandardMaterial({
+                color: 0x84cc16, // Lime Green handle straps
+                roughness: 0.75,
+                metalness: 0.05,
+                bumpMap: nonWovenBumpMap,
+                bumpScale: 0.012
+            });
+
+            const innerDarkMat = new THREE.MeshStandardMaterial({
+                color: 0x0a3a1f,
+                roughness: 0.9
+            });
+
+            // Multi-face material array [Right, Left, Top, Bottom, Front(Printed), Back]
+            const cubeMaterials = [
+                bodySideMat, bodySideMat, innerDarkMat, bodySideMat, frontPrintedMat, bodySideMat
+            ];
+
+            // 1. Core Bag Body Mesh
+            const bodyGeo = new THREE.BoxGeometry(w, h, d);
+            const bodyMesh = new THREE.Mesh(bodyGeo, cubeMaterials);
+            bodyMesh.castShadow = true;
+            bodyMesh.receiveShadow = true;
+            bagGroup.add(bodyMesh);
+
+            // 2. Reinforced Stitched Top Rim Hem
+            const rimGeo = new THREE.BoxGeometry(w * 1.02, h * 0.05, d * 1.04);
+            const rimMesh = new THREE.Mesh(rimGeo, bodySideMat);
+            rimMesh.position.y = h / 2;
+            bagGroup.add(rimMesh);
+
+            // 3. Category Handle Geometries
+            if (selectedBag.category === 'Box Bag') {
+                // Loop Strap Handles for Box Bags
+                const curve = new THREE.CatmullRomCurve3([
+                    new THREE.Vector3(-w * 0.22, 0, 0),
+                    new THREE.Vector3(-w * 0.2, h * 0.38, 0.05),
+                    new THREE.Vector3(0, h * 0.48, 0.08),
+                    new THREE.Vector3(w * 0.2, h * 0.38, 0.05),
+                    new THREE.Vector3(w * 0.22, 0, 0)
+                ]);
+
+                const tubeGeo = new THREE.TubeGeometry(curve, 32, 0.025, 8, false);
+
+                // Front Loop Handle
+                const frontHandle = new THREE.Mesh(tubeGeo, handleMat);
+                frontHandle.position.set(0, h / 2 - 0.05, d / 2 + 0.01);
+                frontHandle.castShadow = true;
+                bagGroup.add(frontHandle);
+
+                // Back Loop Handle
+                const backHandle = new THREE.Mesh(tubeGeo, handleMat);
+                backHandle.position.set(0, h / 2 - 0.05, -d / 2 - 0.01);
+                backHandle.castShadow = true;
+                bagGroup.add(backHandle);
+
+                // Handle Reinforcement Base Pads
+                const padGeo = new THREE.BoxGeometry(w * 0.1, h * 0.08, 0.02);
+                [-w * 0.22, w * 0.22].forEach(px => {
+                    const padF = new THREE.Mesh(padGeo, handleMat);
+                    padF.position.set(px, h / 2 - 0.06, d / 2 + 0.015);
+                    bagGroup.add(padF);
+
+                    const padB = new THREE.Mesh(padGeo, handleMat);
+                    padB.position.set(px, h / 2 - 0.06, -d / 2 - 0.015);
+                    bagGroup.add(padB);
+                });
+
+            } else if (selectedBag.category === 'D Cut Bag') {
+                // Die-cut handle slot ring trim
+                const holeOuterGeo = new THREE.BoxGeometry(w * 0.36, h * 0.09, d * 1.15);
+                const holeMesh = new THREE.Mesh(holeOuterGeo, innerDarkMat);
+                holeMesh.position.set(0, h / 2 - h * 0.12, 0);
+                bagGroup.add(holeMesh);
+
+                const holeBorderGeo = new THREE.BoxGeometry(w * 0.40, h * 0.11, d * 1.05);
+                const holeBorder = new THREE.Mesh(holeBorderGeo, handleMat);
+                holeBorder.position.set(0, h / 2 - h * 0.12, 0);
+                bagGroup.add(holeBorder);
+
+            } else if (selectedBag.category === 'W Cut Bag') {
+                // W-Cut / Vest handles
+                const handleW = w * 0.2;
+                const handleH = h * 0.35;
+
+                const armGeo = new THREE.BoxGeometry(handleW, handleH, d * 0.95);
+                
+                const leftArm = new THREE.Mesh(armGeo, handleMat);
+                leftArm.position.set(-w / 2 + handleW / 2, h / 2 + handleH / 2 - 0.02, 0);
+                bagGroup.add(leftArm);
+
+                const rightArm = new THREE.Mesh(armGeo, handleMat);
+                rightArm.position.set(w / 2 - handleW / 2, h / 2 + handleH / 2 - 0.02, 0);
+                bagGroup.add(rightArm);
+            }
+
+            // Vertical position alignment above shadow floor
+            bagGroup.position.set(0, -h * 0.1, 0);
+        }
+
+        function updateCategoryCounts() {
+            document.getElementById('count-all').innerText = BAG_CATALOG.length;
+            document.getElementById('count-box').innerText = BAG_CATALOG.filter(b => b.category === 'Box Bag').length;
+            document.getElementById('count-dcut').innerText = BAG_CATALOG.filter(b => b.category === 'D Cut Bag').length;
+            document.getElementById('count-wcut').innerText = BAG_CATALOG.filter(b => b.category === 'W Cut Bag').length;
+        }
+
+        function filterCategory(cat) {
+            activeCategory = cat;
+            
+            // Update button styles
+            document.querySelectorAll('.cat-btn').forEach(btn => {
+                btn.className = "cat-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition bg-white text-slate-600 border border-emerald-100 hover:bg-emerald-50 hover:text-emerald-800";
+            });
+
+            const activeClass = "cat-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition bg-gradient-to-r from-emerald-700 to-green-600 text-white shadow-md shadow-emerald-700/20";
+
+            if (cat === 'all') document.getElementById('cat-btn-all').className = activeClass;
+            if (cat === 'Box Bag') document.getElementById('cat-btn-box').className = activeClass;
+            if (cat === 'D Cut Bag') document.getElementById('cat-btn-dcut').className = activeClass;
+            if (cat === 'W Cut Bag') document.getElementById('cat-btn-wcut').className = activeClass;
+
+            populateBagDropdown();
+            onBagSelected();
+        }
+
+        function populateBagDropdown() {
+            const select = document.getElementById('bag-select');
+            select.innerHTML = '';
+
+            const items = activeCategory === 'all' 
+                ? BAG_CATALOG 
+                : BAG_CATALOG.filter(b => b.category === activeCategory);
+
+            items.forEach(bag => {
+                const opt = document.createElement('option');
+                opt.value = bag.id;
+                const dimsStr = `${bag.width}×${bag.height}${bag.gusset ? '×' + bag.gusset : ''}cm`;
+                opt.innerText = `${bag.name} [${dimsStr}] (${bag.ref})`;
+                select.appendChild(opt);
+            });
+
+            if (items.length > 0) {
+                select.value = items[0].id;
+            }
+        }
+
+        function onBagSelectChanged() {
+            const bagId = document.getElementById('bag-select').value;
+            const newBag = BAG_CATALOG.find(b => b.id === bagId);
+            if (newBag) {
+                document.getElementById('base-cost-input').value = newBag.cost.toFixed(2);
+            }
+            markUnsaved();
+        }
+
+        function onBagSelected(initial = false) {
+            const bagId = document.getElementById('bag-select').value;
+            selectedBag = BAG_CATALOG.find(b => b.id === bagId) || BAG_CATALOG[0];
+
+            // Update Specs Box
+            document.getElementById('spec-ref').innerText = selectedBag.ref;
+            document.getElementById('spec-gsm').innerText = selectedBag.gsm;
+            document.getElementById('spec-dims').innerText = `${selectedBag.width} × ${selectedBag.height}${selectedBag.gusset ? ' × ' + selectedBag.gusset : ''} cm`;
+            document.getElementById('spec-cost').innerText = `Rs. ${selectedBag.cost.toFixed(2)}`;
+
+            if (initial) {
+                document.getElementById('base-cost-input').value = selectedBag.cost.toFixed(2);
+            }
+
+            update3DBagModel();
+            calculatePrice();
+        }
+
+        function markUnsaved() {
+            hasUnsavedChanges = true;
+            const container = document.getElementById('save-changes-container');
+            if (container) {
+                container.classList.remove('hidden');
+            }
+            
+            const badge = document.getElementById('tier-badge');
+            if (badge && !badge.innerHTML.includes('Unsaved')) {
+                badge.innerHTML += ' <span class="text-amber-600 font-bold">(Unsaved)</span>';
+            }
+        }
+
+        function saveAndApplyChanges() {
+            onBagSelected(false);
+            hasUnsavedChanges = false;
+            
+            const container = document.getElementById('save-changes-container');
+            if (container) {
+                container.classList.add('hidden');
+            }
+            
+            showToast('Changes saved & calculation updated!');
+        }
+
+        function resetBaseCost() {
+            if (selectedBag) {
+                document.getElementById('base-cost-input').value = selectedBag.cost.toFixed(2);
+                markUnsaved();
+                showToast('Base cost reset. Click Save Changes to apply.');
+            }
+        }
+
+        function setQty(val) {
+            document.getElementById('qty-input').value = val;
+            markUnsaved();
+        }
+
+        function calculatePrice() {
+            const qty = parseInt(document.getElementById('qty-input').value) || 1;
+            const baseCost = parseFloat(document.getElementById('base-cost-input').value) || 0;
+            const addonCost = parseFloat(document.getElementById('addon-cost-input').value) || 0;
+
+            // Find matching quantity tier
+            let matchedTier = TIERS[0];
+            if (qty >= 10000) matchedTier = TIERS[3];
+            else if (qty >= 5000) matchedTier = TIERS[2];
+            else if (qty >= 500) matchedTier = TIERS[1];
+            else matchedTier = TIERS[0];
+
+            const markupPct = matchedTier.markup;
+            const unitPriceAfterMarkup = baseCost * (1 + markupPct);
+            const totalUnitPrice = unitPriceAfterMarkup + addonCost;
+            const totalOrderCost = totalUnitPrice * qty;
+
+            // Update Hero Cards
+            document.getElementById('out-unit-price').innerText = `Rs. ${totalUnitPrice.toFixed(2)}`;
+            document.getElementById('out-total-price').innerText = `Rs. ${totalOrderCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+            // Update Formula Breakdowns
+            document.getElementById('break-base').innerText = `Rs. ${baseCost.toFixed(2)}`;
+            document.getElementById('break-markup').innerText = `+${(markupPct * 100).toFixed(0)}%`;
+            document.getElementById('break-subtotal').innerText = `Rs. ${unitPriceAfterMarkup.toFixed(2)}`;
+            document.getElementById('break-addon').innerText = `Rs. ${addonCost.toFixed(2)}`;
+
+            document.getElementById('tier-badge').innerText = `Tier: ${matchedTier.label}`;
+
+            renderTierRows(baseCost, addonCost, qty);
+        }
+
+        function renderTierRows(baseCost, addonCost, currentQty) {
+            const tbody = document.getElementById('tier-rows');
+            tbody.innerHTML = '';
+
+            TIERS.forEach(t => {
+                const price = (baseCost * (1 + t.markup)) + addonCost;
+                const isCurrent = (currentQty >= t.min && currentQty <= t.max);
+
+                const tr = document.createElement('tr');
+                tr.className = isCurrent ? "bg-emerald-50/80 font-bold border-l-4 border-emerald-600" : "hover:bg-emerald-50/40 transition";
+                tr.innerHTML = `
+                    <td class="py-2.5 px-3 ${isCurrent ? 'text-emerald-900' : ''}">${t.label.split(' ')[0]} ${t.label.split(' ')[1] || ''}</td>
+                    <td class="py-2.5 px-3 text-emerald-700 font-semibold">+${(t.markup * 100)}%</td>
+                    <td class="py-2.5 px-3 text-slate-900 font-bold">Rs. ${price.toFixed(2)}</td>
+                    <td class="py-2.5 px-3">
+                        ${isCurrent ? '<span class="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded border border-emerald-200 font-bold">Active Range</span>' : `<button onclick="setQty(${t.min})" class="text-[10px] bg-white hover:bg-emerald-100 text-slate-700 px-2 py-0.5 rounded border border-emerald-200 transition font-sans font-semibold">Apply</button>`}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderCatalogModalTable() {
+            const tbody = document.getElementById('catalog-modal-table');
+            tbody.innerHTML = '';
+
+            BAG_CATALOG.forEach(bag => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-emerald-50/50 transition";
+                tr.innerHTML = `
+                    <td class="py-2.5 px-2 font-bold text-slate-800">${bag.name}</td>
+                    <td class="py-2.5 px-2 text-slate-500">${bag.category}</td>
+                    <td class="py-2.5 px-2 text-emerald-800 font-semibold">${bag.ref}</td>
+                    <td class="py-2.5 px-2 text-slate-600">${bag.gsm}</td>
+                    <td class="py-2.5 px-2 text-slate-600">${bag.width} cm</td>
+                    <td class="py-2.5 px-2 text-slate-600">${bag.height} cm</td>
+                    <td class="py-2.5 px-2 text-slate-600">${bag.gusset ? bag.gusset + ' cm' : '-'}</td>
+                    <td class="py-2.5 px-2 text-emerald-700 font-bold">Rs. ${bag.cost.toFixed(2)}</td>
+                    <td class="py-2.5 px-2">
+                        <button onclick="selectBagFromModal('${bag.id}')" class="text-[10px] bg-emerald-700 hover:bg-emerald-800 text-white px-2 py-1 rounded transition font-sans font-semibold shadow-sm">
+                            Select
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function selectBagFromModal(bagId) {
+            filterCategory('all');
+            document.getElementById('bag-select').value = bagId;
+            onBagSelected();
+            closeCatalogModal();
+        }
+
+        function openCatalogModal() {
+            document.getElementById('catalog-modal').classList.remove('hidden');
+        }
+
+        function closeCatalogModal() {
+            document.getElementById('catalog-modal').classList.add('hidden');
+        }
+
+        function copyQuoteSummary() {
+            const qty = document.getElementById('qty-input').value;
+            const unitPrice = document.getElementById('out-unit-price').innerText;
+            const totalPrice = document.getElementById('out-total-price').innerText;
+
+            const text = `BAG QUOTATION SUMMARY
+Item: ${selectedBag.name}
+Reference: ${selectedBag.ref}
+Dimensions: ${selectedBag.width}x${selectedBag.height}${selectedBag.gusset ? 'x'+selectedBag.gusset : ''} cm (GSM: ${selectedBag.gsm})
+Order Quantity: ${qty} units
+Unit Price: ${unitPrice} / bag
+Total Order Value: ${totalPrice}`;
+
+            const dummy = document.createElement("textarea");
+            document.body.appendChild(dummy);
+            dummy.value = text;
+            dummy.select();
+            document.execCommand("copy");
+            document.body.removeChild(dummy);
+
+            showToast('Quotation text copied to clipboard!');
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-text').innerText = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+            }, 2500);
+        }
+    </script>
+</body>
+</html>

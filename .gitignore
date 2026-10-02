@@ -1,0 +1,7 @@
+﻿node_modules/
+dist/
+catalog.json
+catalog.json.tmp
+*.log
+_baseline/
+

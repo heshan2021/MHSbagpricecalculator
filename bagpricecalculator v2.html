@@ -1,0 +1,1975 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MHS Bag Price Calculator — Instant Non-Woven Bag Quotation</title>
+    <meta name="description" content="Instant price calculator for the MHS non-woven bag catalogue: box bags, D-cut and W-cut bags with quantity based pricing tiers.">
+    <!-- Tailwind CSS (Play CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4', 100: '#dcfce7', 200: '#bbf7d0', 300: '#86efac',
+                            400: '#4ade80', 500: '#22c55e', 600: '#16a34a', 700: '#15803d',
+                            800: '#166534', 900: '#14532d'
+                        },
+                        ecolime: '#84cc16',
+                        forest: '#0f392b'
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        };
+    </script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Three.js (optional 3D preview — the calculator works without it) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        :root { --brand: #059669; --brand-dark: #064e3b; --brand-soft: #a7f3d0; }
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Inter', sans-serif; }
+        .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace; font-variant-numeric: tabular-nums; }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f0fdf4; }
+        ::-webkit-scrollbar-thumb { background: #a7f3d0; border-radius: 999px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6ee7b7; }
+
+        /* ---------- Surfaces ---------- */
+        .glass-panel { background: rgba(255,255,255,0.96); backdrop-filter: blur(12px); border: 1px solid rgba(16,185,129,0.16); box-shadow: 0 10px 30px -18px rgba(6,95,70,0.35); }
+        .card { background: #fff; border: 1px solid #d1fae5; border-radius: 1rem; box-shadow: 0 10px 30px -24px rgba(6,95,70,0.5); }
+        .step-title { display: flex; align-items: center; gap: .6rem; font-size: .95rem; font-weight: 700; color: #0f172a; padding-bottom: .7rem; border-bottom: 1px solid #ecfdf5; }
+        .step-num { width: 1.5rem; height: 1.5rem; flex: 0 0 1.5rem; border-radius: .6rem; background: linear-gradient(135deg, #059669, #65a30d); color: #fff; font-size: .72rem; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; }
+
+        /* ---------- Form controls ---------- */
+        .label { display: block; font-size: .75rem; font-weight: 600; color: #475569; margin-bottom: .35rem; }
+        .hint { font-size: .7rem; color: #64748b; display: flex; align-items: flex-start; gap: .35rem; line-height: 1.45; }
+        .field { width: 100%; background: #f0fdf4; border: 1px solid #a7f3d0; border-radius: .75rem; padding: .6rem .75rem; font-size: .875rem; font-weight: 600; color: #0f172a; transition: background-color .15s, border-color .15s, box-shadow .15s; }
+        .field::placeholder { color: #94a3b8; font-weight: 400; }
+        .field:hover { border-color: #6ee7b7; }
+        .field:focus { outline: none; background: #fff; border-color: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,0.18); }
+        .field.is-warning { border-color: #fbbf24; background: #fffbeb; }
+        .field.is-warning:focus { border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,0.2); }
+        select.field { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%2315803d' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='M5.5 7.5 10 12l4.5-4.5'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right .75rem center; background-size: 1.1rem; padding-right: 2.3rem; }
+        input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+        input[type=range] { accent-color: #059669; }
+        textarea.field { resize: vertical; font-weight: 500; }
+        /* ---------- Buttons / chips ---------- */
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; border-radius: .75rem; font-weight: 700; transition: transform .12s, background-color .15s, box-shadow .15s, color .15s, border-color .15s; }
+        .btn:active { transform: scale(.975); }
+        .btn-primary { background: linear-gradient(135deg, #16a34a, #65a30d); color: #fff; padding: .7rem 1rem; font-size: .85rem; box-shadow: 0 10px 20px -14px rgba(5,150,105,0.95); }
+        .btn-primary:hover { background: linear-gradient(135deg, #15803d, #4d7c0f); }
+        .btn-lime { background: linear-gradient(135deg, #bef264, #84cc16); color: #0f2b1a; padding: .8rem 1rem; font-size: .85rem; box-shadow: 0 12px 24px -16px rgba(132,204,22,1); }
+        .btn-lime:hover { background: linear-gradient(135deg, #a3e635, #65a30d); }
+        .btn-dark { background: rgba(6,78,59,0.85); color: #ecfdf5; border: 1px solid rgba(16,185,129,0.45); padding: .8rem 1rem; font-size: .8rem; }
+        .btn-dark:hover { background: rgba(6,95,70,0.95); }
+        .btn-outline { background: #fff; border: 1px solid #a7f3d0; color: #065f46; padding: .45rem .7rem; font-size: .75rem; }
+        .btn-outline:hover { background: #ecfdf5; border-color: #6ee7b7; }
+        .chip { font-size: .75rem; font-weight: 700; padding: .35rem .7rem; border-radius: .6rem; background: #fff; border: 1px solid #a7f3d0; color: #475569; transition: .15s; white-space: nowrap; }
+        .chip:hover { background: #ecfdf5; border-color: #6ee7b7; color: #065f46; }
+        .chip-active { background: linear-gradient(135deg, #047857, #65a30d); border-color: transparent; color: #fff; box-shadow: 0 8px 18px -12px rgba(5,150,105,0.95); }
+        .mode-btn { font-size: .72rem; font-weight: 700; padding: .35rem .7rem; border-radius: .55rem; color: #64748b; transition: .15s; }
+        .mode-btn[aria-pressed="true"] { background: #fff; color: #065f46; box-shadow: 0 1px 4px rgba(6,95,70,0.2); }
+        .link-btn { font-size: .7rem; font-weight: 700; color: #047857; text-decoration: underline; text-underline-offset: 2px; }
+        .link-btn:hover { color: #065f46; }
+        kbd { font-family: inherit; font-size: .68rem; font-weight: 700; padding: .05rem .3rem; border: 1px solid #cbd5e1; border-bottom-width: 2px; border-radius: .3rem; background: #f8fafc; color: #475569; }
+
+        /* ---------- Tags / notes / tables ---------- */
+        .tag { display: inline-flex; align-items: center; gap: .3rem; font-size: .66rem; font-weight: 700; padding: .2rem .55rem; border-radius: 999px; border: 1px solid transparent; white-space: nowrap; }
+        .tag-info { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
+        .tag-active { background: #065f46; color: #d9f99d; border-color: #047857; }
+        .tag-lime { background: rgba(190,242,100,0.9); color: #14351f; border-color: rgba(163,230,53,0.9); }
+        .tag-soft { background: rgba(6,78,59,0.75); color: #d1fae5; border-color: rgba(16,185,129,0.4); }
+        .btn-tiny { font-size: .68rem; font-weight: 700; padding: .28rem .6rem; border-radius: .5rem; background: #fff; border: 1px solid #a7f3d0; color: #065f46; transition: .15s; }
+        .btn-tiny:hover { background: #ecfdf5; border-color: #6ee7b7; }
+        .btn-tiny[disabled] { opacity: .55; cursor: not-allowed; }
+        .note { display: flex; gap: .5rem; align-items: flex-start; font-size: .72rem; font-weight: 600; padding: .5rem .65rem; border-radius: .65rem; border: 1px solid; line-height: 1.45; }
+        .note-warn { background: #fffbeb; border-color: #fcd34d; color: #92400e; }
+        .note-info { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; }
+        .note-ok { background: #ecfdf5; border-color: #a7f3d0; color: #065f46; }
+        .tbl { width: 100%; border-collapse: collapse; }
+        .tbl th { font-size: .66rem; text-transform: uppercase; letter-spacing: .04em; color: #64748b; font-weight: 700; text-align: left; padding: .6rem .55rem; border-bottom: 1px solid #d1fae5; white-space: nowrap; }
+        .tbl td { font-size: .75rem; padding: .6rem .55rem; border-bottom: 1px solid #f0fdf4; vertical-align: middle; }
+        .tbl tbody tr:hover { background: #f0fdf4; }
+        .tbl .num { text-align: right; }
+        .tbl .center { text-align: center; }
+        .tier-row-active, .tbl tbody tr.tier-row-active:hover { background: #ecfdf5; box-shadow: inset 3px 0 0 #047857; }
+        .t-strong { font-weight: 700; color: #0f172a; }
+        .t-muted { color: #64748b; }
+        .t-accent { color: #065f46; font-weight: 600; }
+        .t-price { color: #047857; font-weight: 700; }
+        .scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        :where(a, button, input, select, textarea, [tabindex]):focus-visible { outline: 2px solid #059669; outline-offset: 2px; }
+
+        /* ---------- Toast ---------- */
+        .toast { position: fixed; bottom: 1.25rem; right: 1.25rem; z-index: 60; display: flex; align-items: center; gap: .6rem; padding: .75rem 1rem; border-radius: .9rem; font-size: .78rem; font-weight: 600; color: #fff; max-width: min(92vw, 27rem); box-shadow: 0 18px 40px -18px rgba(0,0,0,0.6); transition: opacity .25s, transform .25s; }
+        .toast-hidden { opacity: 0; transform: translateY(1.25rem); pointer-events: none; }
+        .toast-success { background: #065f46; border: 1px solid #047857; }
+        .toast-info { background: #0f172a; border: 1px solid #1e293b; }
+        .toast-warn { background: #78350f; border: 1px solid #b45309; }
+        .toast-success #toast-icon { color: #a3e635; }
+        .toast-info #toast-icon { color: #7dd3fc; }
+        .toast-warn #toast-icon { color: #fcd34d; }
+        @media (max-width: 1023px) { .toast { bottom: 5.25rem; } }
+
+        /* ---------- Print: only the quotation sheet ---------- */
+        @media print {
+            .no-print { display: none !important; }
+            body { background: #fff !important; }
+            body * { visibility: hidden !important; }
+            #print-area, #print-area * { visibility: visible !important; }
+            #print-area { position: absolute; left: 0; top: 0; width: 100%; border: none !important; box-shadow: none !important; border-radius: 0 !important; background: #fff !important; padding: 0 !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+            @page { size: A4; margin: 14mm; }
+        }
+
+    </style>
+</head>
+<body class="min-h-full bg-emerald-50/40 text-slate-800 antialiased">
+    <!-- ================= HEADER ================= -->
+    <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-emerald-100 shadow-sm no-print">
+        <div class="max-w-7xl mx-auto px-4 lg:px-6 py-3 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="relative w-10 h-10 shrink-0 rounded-xl bg-gradient-to-tr from-emerald-700 via-green-600 to-lime-500 flex items-center justify-center text-white shadow-md shadow-emerald-600/25">
+                    <i class="fa-solid fa-leaf text-lg"></i>
+                    <span class="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-lime-400 rounded-full border-2 border-white"></span>
+                </div>
+                <div class="min-w-0">
+                    <h1 class="text-lg sm:text-xl font-extrabold tracking-tight text-slate-900 truncate">
+                        <span class="bg-gradient-to-r from-emerald-800 via-green-700 to-lime-600 bg-clip-text text-transparent">MHS Bag</span> Price Calculator
+                    </h1>
+                    <p class="text-[11px] sm:text-xs text-slate-500 truncate">Live quotation from the non-woven catalogue · quantity based pricing</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+                <button type="button" id="btn-catalog" class="btn-outline">
+                    <i class="fa-solid fa-table-list text-emerald-600"></i>
+                    <span class="hidden sm:inline">Full catalogue</span><span class="sm:hidden">Catalogue</span>
+                </button>
+                <a href="admin.html" id="admin-link" class="btn-outline" title="Administrator only: markup and rate control (password protected)">
+                    <i class="fa-solid fa-lock text-emerald-600"></i>
+                    <span class="hidden lg:inline">Admin</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- ================= MAIN ================= -->
+    <main class="flex-1 w-full max-w-7xl mx-auto px-4 lg:px-6 py-5 space-y-5 pb-28 lg:pb-10">
+
+        <!-- Bag type filter -->
+        <div class="flex items-center gap-3">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500 hidden sm:inline">Bag type</span>
+            <div id="cat-chips" class="flex items-center gap-2 overflow-x-auto pb-1" role="group" aria-label="Filter the catalogue by bag type">
+                <button type="button" class="chip" data-cat="all" aria-pressed="true">All bag types <span class="opacity-70 mono" id="count-all">0</span></button>
+                <button type="button" class="chip" data-cat="Box Bag" aria-pressed="false">Box bags <span class="opacity-70 mono" id="count-box">0</span></button>
+                <button type="button" class="chip" data-cat="D Cut Bag" aria-pressed="false">D-cut bags <span class="opacity-70 mono" id="count-dcut">0</span></button>
+                <button type="button" class="chip" data-cat="W Cut Bag" aria-pressed="false">W-cut bags <span class="opacity-70 mono" id="count-wcut">0</span></button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+
+            <!-- ============ LEFT: configurator ============ -->
+            <div class="lg:col-span-5 space-y-5">
+
+                <!-- 3D preview -->
+                <section class="card overflow-hidden no-print">
+                    <div class="flex items-center justify-between gap-3 px-4 py-3 border-b border-emerald-100 bg-emerald-50/60">
+                        <h2 class="text-sm font-bold text-emerald-950 flex items-center gap-2">
+                            <i class="fa-solid fa-cube text-emerald-600"></i> 3D bag preview
+                        </h2>
+                        <div class="flex items-center gap-2">
+                            <button type="button" id="btn-3d-reset" class="btn-outline" title="Reset the 3D view">
+                                <i class="fa-solid fa-arrows-rotate"></i> <span class="hidden sm:inline">Reset view</span>
+                            </button>
+                            <button type="button" id="btn-3d-toggle" class="btn-outline lg:hidden" aria-expanded="true" aria-controls="bag-3d-canvas-container">Hide</button>
+                        </div>
+                    </div>
+                    <div id="bag-3d-canvas-container" tabindex="0" aria-label="Interactive 3D preview of the selected bag. Use the arrow keys to rotate, and R to reset." class="w-full h-64 relative cursor-grab active:cursor-grabbing bg-gradient-to-b from-emerald-900/5 via-slate-100 to-white flex items-center justify-center">
+                        <div id="spinner-3d-loading" class="absolute text-xs text-emerald-700 font-semibold flex items-center gap-2">
+                            <i class="fa-solid fa-circle-notch animate-spin"></i> Generating fabric texture…
+                        </div>
+                    </div>
+                    <p class="px-4 py-2.5 text-[11px] text-slate-500 flex items-center gap-1.5 border-t border-emerald-50">
+                        <i class="fa-solid fa-hand-pointer text-emerald-600"></i> Drag to rotate · arrow keys spin · <kbd>R</kbd> resets · drawing is proportional to the real bag dimensions
+                    </p>
+                </section>
+                <!-- STEP 1 -->
+                <section class="card p-5 space-y-4" aria-labelledby="step-1-title">
+                    <h2 id="step-1-title" class="step-title"><span class="step-num">1</span> Choose the bag model</h2>
+                    <div>
+                        <label class="label" for="bag-select">Catalogue item</label>
+                        <select id="bag-select" class="field"></select>
+                        <p class="hint mt-1.5"><i class="fa-solid fa-circle-info mt-px"></i><span id="bag-count-hint">Loading catalogue…</span></p>
+                    </div>
+                    <dl id="bag-specs-card" class="rounded-xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-lime-50/50 p-3.5">
+                        <div class="flex items-center justify-between gap-3 text-xs">
+                            <dt class="text-slate-500 font-medium">Reference / use case</dt>
+                            <dd id="spec-ref" class="font-bold text-emerald-900 text-right">—</dd>
+                        </div>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-3 mt-3 border-t border-emerald-200/70 text-center">
+                            <div class="rounded-lg bg-white/85 border border-emerald-100 p-2">
+                                <dt class="text-[10px] uppercase font-semibold text-slate-400">GSM</dt>
+                                <dd id="spec-gsm" class="mono text-sm font-bold text-slate-800">—</dd>
+                            </div>
+                            <div class="rounded-lg bg-white/85 border border-emerald-100 p-2">
+                                <dt class="text-[10px] uppercase font-semibold text-slate-400">W×H×G</dt>
+                                <dd id="spec-dims" class="mono text-sm font-bold text-slate-800">—</dd>
+                            </div>
+                            <div class="rounded-lg bg-white/85 border border-emerald-100 p-2">
+                                <dt class="text-[10px] uppercase font-semibold text-slate-400">Min order</dt>
+                                <dd id="spec-min" class="mono text-sm font-bold text-slate-800">—</dd>
+                            </div>
+                        </div>
+                    </dl>
+                    <p class="hint pt-1"><i class="fa-solid fa-lock mt-px text-emerald-600"></i><span>Bag costs and markup rates are held on the administrator panel — this page only shows the customer price.</span></p>
+                </section>
+
+                <!-- STEP 2 -->
+                <section class="card p-5 space-y-4" aria-labelledby="step-2-title">
+                    <h2 id="step-2-title" class="step-title"><span class="step-num">2</span> Set the order quantity</h2>
+                    <div>
+                        <div class="flex items-center justify-between gap-3 mb-1.5">
+                            <label class="label mb-0" for="qty-input">Quantity (bags)</label>
+                            <span id="tier-badge" class="tag tag-info mono">—</span>
+                        </div>
+                        <div class="flex items-stretch gap-2">
+                            <button type="button" id="btn-qty-minus" class="btn-outline px-3" aria-label="Decrease quantity"><i class="fa-solid fa-minus"></i></button>
+                            <input id="qty-input" class="field mono text-center text-base" type="number" min="1" step="1" inputmode="numeric" value="500" aria-describedby="qty-warning">
+                            <button type="button" id="btn-qty-plus" class="btn-outline px-3" aria-label="Increase quantity"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                        <div id="qty-presets" class="flex flex-wrap gap-1.5 mt-2.5" role="group" aria-label="Quick quantity presets">
+                            <button type="button" class="chip" data-qty="100">100</button>
+                            <button type="button" class="chip" data-qty="500">500</button>
+                            <button type="button" class="chip" data-qty="1000">1,000</button>
+                            <button type="button" class="chip" data-qty="5000">5,000</button>
+                            <button type="button" class="chip" data-qty="10000">10,000</button>
+                            <button type="button" class="chip" data-qty="25000">25,000</button>
+                        </div>
+                    </div>
+                    <div id="qty-warning" class="space-y-1.5"></div>
+                </section>
+                <!-- STEP 3 -->
+                <section class="card p-5 space-y-4" aria-labelledby="step-3-title">
+                    <h2 id="step-3-title" class="step-title"><span class="step-num">3</span> Additional charges</h2>
+                    <div>
+                        <label class="label" for="addon-cost-input">Printing / add-on per bag <span class="font-normal text-slate-400">(optional)</span></label>
+                        <input id="addon-cost-input" class="field mono" type="number" min="0" step="0.5" inputmode="decimal" placeholder="0.00">
+                        <p class="hint mt-1.5"><i class="fa-solid fa-circle-info mt-px"></i><span>Added to every bag — custom printing, extra handles or special packing. Leave it empty for the standard catalogue rate.</span></p>
+                    </div>
+
+                    <!-- Administrator-only block. Hidden unless "Allow staff markup override" is switched on
+                         in the admin dashboard; customer price always comes from the rate card tier. -->
+                    <div id="markup-controls" class="pt-3 border-t border-emerald-50 space-y-2" hidden>
+                        <p class="note note-warn">
+                            <i class="fa-solid fa-user-shield mt-px"></i>
+                            <span>Administrator mode: markup override is enabled. Rates you set here apply to this quotation only and are not saved back to the rate card.</span>
+                        </p>
+                        <div class="flex items-center justify-between gap-3">
+                            <span class="label mb-0">Markup applied</span>
+                            <div class="inline-flex rounded-xl bg-emerald-50 p-1 border border-emerald-100" role="group" aria-label="Markup mode">
+                                <button type="button" id="mode-tier" class="mode-btn" aria-pressed="true">Quantity tier</button>
+                                <button type="button" id="mode-manual" class="mode-btn" aria-pressed="false">Manual %</button>
+                            </div>
+                        </div>
+                        <div id="manual-markup-wrap" class="hidden space-y-2 pt-1">
+                            <div class="flex items-center gap-3">
+                                <input id="markup-slider" type="range" min="0" max="100" step="1" value="30" class="w-full" aria-label="Manual markup percentage slider">
+                                <div class="relative w-24 shrink-0">
+                                    <input id="manual-markup-input" class="field mono pr-7 text-right" type="number" min="0" max="500" step="0.5" inputmode="decimal" aria-label="Manual markup percentage">
+                                    <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-emerald-700 pointer-events-none">%</span>
+                                </div>
+                            </div>
+                            <button type="button" id="btn-markup-auto" class="link-btn">Back to the quantity tier rate</button>
+                        </div>
+                        <p class="hint"><i class="fa-solid fa-circle-info mt-px"></i><span id="markup-hint">—</span></p>
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- ============ RIGHT: live results ============ -->
+            <div class="lg:col-span-7 space-y-5">
+                <!-- Live price summary -->
+                <section class="rounded-2xl bg-gradient-to-br from-emerald-800 via-emerald-900 to-green-950 text-white border border-emerald-700 shadow-xl shadow-emerald-900/20 overflow-hidden" aria-labelledby="price-title">
+                    <div class="p-5 sm:p-6">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-5 pb-5 border-b border-emerald-700/60">
+                            <div>
+                                <h2 id="price-title" class="text-[11px] font-bold uppercase tracking-wider text-lime-400 flex items-center gap-1.5"><i class="fa-solid fa-tag"></i> Price per bag</h2>
+                                <div class="flex items-baseline gap-1.5 mt-1">
+                                    <span id="out-unit-price" class="mono text-3xl sm:text-4xl font-extrabold" aria-live="polite" aria-atomic="true">Rs. 0.00</span>
+                                    <span class="text-xs text-emerald-200">/ bag</span>
+                                </div>
+                                <p id="out-item-name" class="text-xs text-emerald-200/90 mt-1">—</p>
+                            </div>
+                            <div class="bg-emerald-950/70 border border-emerald-700/70 rounded-xl p-3.5 sm:text-right">
+                                <span class="text-[11px] uppercase font-medium text-emerald-300 block">Total order value</span>
+                                <span id="out-total-price" class="mono text-2xl font-extrabold text-lime-400">Rs. 0.00</span>
+                                <span id="out-total-qty" class="block text-[11px] text-emerald-300/80 mt-0.5">—</span>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 text-xs">
+                            <div class="bg-emerald-950/40 border border-emerald-800 rounded-lg p-2.5">
+                                <span class="text-emerald-300 block text-[11px]">Printing / add-on</span>
+                                <span id="break-addon" class="mono font-bold text-white">Rs. 0.00</span>
+                            </div>
+                            <div class="bg-emerald-950/40 border border-emerald-800 rounded-lg p-2.5">
+                                <span class="text-emerald-300 block text-[11px]">Price per 1,000 bags</span>
+                                <span id="out-per-1000" class="mono font-bold text-white">Rs. 0.00</span>
+                            </div>
+                            <div class="bg-emerald-950/40 border border-emerald-800 rounded-lg p-2.5">
+                                <span class="text-emerald-300 block text-[11px]">Saving vs the 100-bag rate</span>
+                                <span id="out-savings" class="mono font-bold text-white">—</span>
+                            </div>
+                            <div class="bg-emerald-950/40 border border-emerald-800 rounded-lg p-2.5">
+                                <span class="text-emerald-300 block text-[11px]">Saving on this order</span>
+                                <span id="out-saving-total" class="mono font-bold text-lime-400">—</span>
+                            </div>
+                        </div>
+
+                        <p id="formula-line" class="mono text-[11px] leading-relaxed text-emerald-100 bg-emerald-950/50 border border-emerald-700/60 rounded-lg px-3 py-2.5 mt-4">—</p>
+
+                        <div class="flex flex-wrap gap-2.5 mt-5">
+                            <button type="button" id="btn-copy" class="btn btn-lime flex-1 min-w-[170px]">
+                                <i class="fa-regular fa-copy"></i> Copy quotation
+                            </button>
+                            <button type="button" id="btn-print" class="btn btn-dark no-print">
+                                <i class="fa-solid fa-print"></i> Print / PDF
+                            </button>
+                            <button type="button" id="btn-reset" class="btn btn-dark no-print">
+                                <i class="fa-solid fa-rotate-left"></i> Reset
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Quotation details -->
+                <section class="card p-5 space-y-4 no-print" aria-labelledby="quote-details-title">
+                    <h2 id="quote-details-title" class="step-title"><span class="step-num">4</span> Quotation details</h2>
+                    <div class="grid sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="label" for="quote-customer">Prepared for</label>
+                            <input id="quote-customer" class="field" type="text" placeholder="Customer / company name" autocomplete="organization">
+                        </div>
+                        <div>
+                            <label class="label" for="quote-date">Quotation date</label>
+                            <input id="quote-date" class="field mono" type="date">
+                        </div>
+                        <div>
+                            <label class="label" for="quote-validity">Valid for (days)</label>
+                            <input id="quote-validity" class="field mono" type="number" min="1" max="365" step="1" value="14">
+                        </div>
+                        <div>
+                            <label class="label" for="quote-leadtime">Production lead time</label>
+                            <input id="quote-leadtime" class="field" type="text" value="7 – 10 working days">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="label" for="quote-notes">Notes / terms <span class="font-normal text-slate-400">(optional)</span></label>
+                        <textarea id="quote-notes" class="field" rows="2" placeholder="e.g. Prices exclude delivery. 50% advance payment with the order."></textarea>
+                    </div>
+                    <p class="hint"><i class="fa-solid fa-lightbulb mt-px text-amber-500"></i><span>These details appear on the quotation sheet below and in the copied / printed quote.</span></p>
+                </section>
+                <!-- Quotation sheet (this exact block is printed / copied) -->
+                <section class="card p-5">
+                    <div class="flex items-center justify-between gap-3 mb-4 no-print">
+                        <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2"><span class="step-num">5</span> Quotation sheet</h2>
+                        <span class="text-[11px] text-slate-500 font-medium">Printed / copied exactly as shown</span>
+                    </div>
+                    <div id="print-area" class="rounded-xl border border-emerald-100 bg-white p-5"></div>
+                </section>
+
+                <!-- Pricing tiers -->
+                <section class="card p-5 space-y-3" aria-labelledby="tiers-title">
+                    <div class="flex items-start justify-between gap-3">
+                        <h2 id="tiers-title" class="step-title border-0 pb-0 mb-0"><span class="step-num">6</span> Quantity pricing tiers</h2>
+                        <span id="tier-note" class="tag tag-info shrink-0">—</span>
+                    </div>
+                    <div class="scroll-x">
+                        <table class="tbl">
+                            <thead>
+                                <tr>
+                                    <th>Order quantity</th>
+                                    <th class="num">Price / bag</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tier-rows"></tbody>
+                        </table>
+                    </div>
+                    <p class="hint pt-1"><i class="fa-solid fa-circle-info mt-px"></i><span>The price per bag depends on the order quantity — larger orders automatically get the better rate. Order amounts are calculated at full precision, so a rounded unit price multiplied by the quantity can differ by a few cents.</span></p>
+                    <p id="rate-source" class="hint pt-1"><i class="fa-solid fa-shield-halved mt-px text-emerald-600"></i><span>Rate card: factory defaults.</span></p>
+                </section>
+
+            </div><!-- /right column -->
+        </div><!-- /grid -->
+    </main>
+    <!-- ================= MOBILE STICKY SUMMARY ================= -->
+    <div id="mobile-bar" class="fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-emerald-950/95 backdrop-blur border-t border-emerald-800 px-4 py-2.5 flex items-center justify-between gap-3 no-print">
+        <div class="min-w-0">
+            <span class="block text-[10px] uppercase tracking-wider text-emerald-400">Per bag</span>
+            <span id="m-unit" class="mono font-bold text-white text-sm">Rs. 0.00</span>
+        </div>
+        <div class="text-right min-w-0">
+            <span class="block text-[10px] uppercase tracking-wider text-emerald-400">Total · <span id="m-qty">500</span> bags</span>
+            <span id="m-total" class="mono font-bold text-lime-400 text-sm">Rs. 0.00</span>
+        </div>
+        <button type="button" id="m-copy" class="btn btn-lime px-3 py-2 text-xs shrink-0" aria-label="Copy the quotation"><i class="fa-regular fa-copy"></i></button>
+    </div>
+
+    <!-- ================= CATALOGUE MODAL ================= -->
+    <div id="catalog-modal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm overflow-y-auto no-print" role="dialog" aria-modal="true" aria-labelledby="catalog-modal-title">
+        <div class="mx-auto w-full max-w-6xl min-h-full sm:min-h-0 sm:my-6 bg-white sm:rounded-2xl shadow-2xl border border-emerald-100 overflow-hidden">
+            <div class="bg-white border-b border-emerald-100 px-4 sm:px-5 py-3.5 flex items-center justify-between gap-3">
+                <div>
+                    <h2 id="catalog-modal-title" class="text-base font-extrabold text-slate-900 flex items-center gap-2"><i class="fa-solid fa-table-list text-emerald-600"></i> Full bag catalogue</h2>
+                    <p id="modal-result-count" class="text-[11px] text-slate-500">—</p>
+                </div>
+                <button type="button" id="modal-close" class="btn-outline" aria-label="Close the catalogue"><i class="fa-solid fa-xmark"></i> Close</button>
+            </div>
+            <div class="px-4 sm:px-5 py-3.5 space-y-3 bg-emerald-50/40 border-b border-emerald-100">
+                <div class="flex flex-col sm:flex-row gap-2.5">
+                    <div class="relative flex-1">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-emerald-500 text-xs"></i>
+                        <input id="modal-search" class="field pl-9" type="search" placeholder="Search by name, reference, GSM or bag type…" aria-label="Search the catalogue">
+                    </div>
+                    <select id="modal-sort" class="field sm:w-56" aria-label="Sort the catalogue">
+                        <option value="default">Catalogue order</option>
+                        <option value="name">Name (A–Z)</option>
+                        <option value="category">Bag type</option>
+                        <option value="minorder">Minimum order (low → high)</option>
+                        <option value="size">Bag size (large → small)</option>
+                    </select>
+                </div>
+                <div id="modal-cat-chips" class="flex flex-wrap gap-1.5" role="group" aria-label="Filter by bag type">
+                    <button type="button" class="chip" data-mcat="all" aria-pressed="true">All</button>
+                    <button type="button" class="chip" data-mcat="Box Bag" aria-pressed="false">Box bags</button>
+                    <button type="button" class="chip" data-mcat="D Cut Bag" aria-pressed="false">D-cut bags</button>
+                    <button type="button" class="chip" data-mcat="W Cut Bag" aria-pressed="false">W-cut bags</button>
+                </div>
+            </div>
+            <div class="scroll-x">
+                <table class="tbl">
+                    <thead>
+                        <tr>
+                            <th>Bag model</th>
+                            <th>Category</th>
+                            <th>Reference</th>
+                            <th>GSM</th>
+                            <th>W×H×G (cm)</th>
+                            <th class="num">Min order</th>
+                            <th class="num">Price / bag</th>
+                            <th class="num">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="catalog-modal-table"></tbody>
+                </table>
+            </div>
+            <p class="px-4 sm:px-5 py-3 text-[11px] text-slate-500 border-t border-emerald-50">Pick any model to price it instantly — the rate card is applied automatically by order quantity. Press <kbd>Esc</kbd> to close.</p>
+        </div>
+    </div>
+
+    <!-- ================= TOAST ================= -->
+    <div id="toast" class="toast toast-hidden toast-success" role="status" aria-live="polite">
+        <i id="toast-icon" class="fa-solid fa-circle-check"></i>
+        <span id="toast-text"></span>
+    </div>
+    <!-- ================= APPLICATION SCRIPT ================= -->
+    <script>
+        /* =========================================================================
+           MHS Bag Price Calculator v2
+           1. Catalogue data (unchanged values from the printed 2026 catalogue)
+           2. Pricing engine  — one pure calculation, one render pass
+           3. UI wiring       — every input is live, no "save" step
+           ========================================================================= */
+
+        /* ---------- 1. Catalogue data ---------- */
+        const FACTORY_BAGS = [
+            { id: 'box_type_1',      category: 'Box Bag',    name: 'Box Bag Type 1 (Small)',        ref: 'Small Keells',              gsm: '85-90', width: 32, height: 36, gusset: 11, minQty: 500, cost: 45.55, active: true },
+            { id: 'box_type_2',      category: 'Box Bag',    name: 'Box Bag Type 2 (Large)',        ref: 'Keells',                    gsm: '90-100', width: 34, height: 37, gusset: 18, minQty: 500, cost: 52.00, active: true },
+            { id: 'box_type_3',      category: 'Box Bag',    name: 'Box Bag Type 3',                ref: 'Cargills',                  gsm: '90',    width: 42, height: 37, gusset: 16, minQty: 500, cost: 58.50, active: true },
+            { id: 'box_type_4',      category: 'Box Bag',    name: 'Box Bag Type 4 (Full Handle)',  ref: 'Arpico',                    gsm: '90',    width: 34, height: 37, gusset: 16, minQty: 500, cost: 50.00, active: true },
+            { id: 'box_new_cargills', category: 'Box Bag',   name: 'Box Bag (New Cargills)',        ref: 'New Cargills Bag',          gsm: '85',    width: 25, height: 31, gusset: 12, minQty: 500, cost: 38.00, active: true },
+            { id: 'd_cut_small',     category: 'D Cut Bag',  name: 'D Cut Bag Small',               ref: 'Small Rice Bag / Document 10kg', gsm: '80', width: 25, height: 33, gusset: 0, minQty: 500, cost: 22.50, active: true },
+            { id: 'd_cut_med',       category: 'D Cut Bag',  name: 'D Cut Bag Medium',              ref: 'Document / Rice Bag',       gsm: '43',    width: 43, height: 56, gusset: 0,  minQty: 500, cost: 32.00, active: true },
+            { id: 'd_cut_large',     category: 'D Cut Bag',  name: 'D Cut Bag Large',               ref: 'Rice Bag',                  gsm: '100',   width: 33, height: 43, gusset: 0,  minQty: 500, cost: 35.00, active: true },
+            { id: 'd_cut_prima',     category: 'D Cut Bag',  name: 'D Cut Bag (Prima 5kg)',         ref: 'Prima 5kg',                 gsm: '37',    width: 37, height: 50, gusset: 0,  minQty: 500, cost: 28.00, active: true },
+            { id: 'w_cut_med',       category: 'W Cut Bag',  name: 'W Cut Bag Medium',              ref: 'Pharmacy Bag',              gsm: '30',    width: 25, height: 45, gusset: 12, minQty: 500, cost: 14.50, active: true },
+            { id: 'w_cut_large',     category: 'W Cut Bag',  name: 'W Cut Bag Large',               ref: 'Pharmacy Bag',              gsm: '30',    width: 29, height: 55, gusset: 14, minQty: 500, cost: 18.20, active: true },
+            { id: 'w_cut_xl',        category: 'W Cut Bag',  name: 'W Cut Bag XL',                  ref: 'Pharmacy Bag',              gsm: '30',    width: 33, height: 59, gusset: 16, minQty: 500, cost: 22.00, active: true }
+        ];
+
+        /* Tenant defaults for everything the administrator can tune. */
+        const FACTORY_SETTINGS = {
+            minOrderQty: 100,
+            allowManualMarkup: false,
+            defaultValidityDays: 14,
+            defaultLeadTime: '7 – 10 working days',
+            companyName: 'MHS PACKAGING',
+            companyTagline: 'Eco non-woven bag manufacturing',
+            defaultNotes: ''
+        };
+
+        /* The live rate card. Both are replaced by the administrator's saved copy. */
+        let BAG_CATALOG = FACTORY_BAGS.map(b => Object.assign({}, b));
+        let SETTINGS = Object.assign({}, FACTORY_SETTINGS);
+        let rateInfo = { source: 'factory', updatedAt: null };
+
+        const RATES_KEY = 'mhs-rates-v1';          // shared with admin.html
+        const RATES_ENDPOINT = '/api/rates';       // served by serve.js (optional)
+
+        /* ---------- 2. Quantity markup tiers (administrator controlled) ---------- */
+        const FACTORY_TIERS = [
+            { min: 100,   max: 499,  markup: 0.50 },
+            { min: 500,   max: 4999, markup: 0.30 },
+            { min: 5000,  max: 9999, markup: 0.20 },
+            { min: 10000, max: null, markup: 0.15 }
+        ];
+        let TIER_LADDER = normaliseTiers(FACTORY_TIERS);
+
+        const CATEGORY_TABS = [
+            { key: 'all',       countId: 'count-all' },
+            { key: 'Box Bag',   countId: 'count-box' },
+            { key: 'D Cut Bag', countId: 'count-dcut' },
+            { key: 'W Cut Bag', countId: 'count-wcut' }
+        ];
+
+        let MIN_ORDER_QTY = FACTORY_SETTINGS.minOrderQty;
+        let ALLOW_MANUAL_MARKUP = false;
+        const STORAGE_KEY = 'mhs-bag-quote-v2';
+        const DEFAULT_LEAD_TIME = FACTORY_SETTINGS.defaultLeadTime;
+        const QUOTE_REF = 'MHS-' + new Date().toISOString().slice(2, 10).replace(/-/g, '') + '-' + Math.floor(100 + Math.random() * 900);
+
+        /* ---------- Rate card: normalise + load (administrator controlled) ---------
+           The calculator needs the cost and markup numbers to price a quotation, but
+           it never displays them. They arrive in this order:
+             1. the factory defaults above,
+             2. the copy the administrator saved in this browser (localStorage),
+             3. the shared catalog.json behind serve.js - the newest timestamp wins.
+           ------------------------------------------------------------------------- */
+        function normaliseTiers(raw) {
+            const source = Array.isArray(raw) && raw.length ? raw : FACTORY_TIERS;
+            const clean = [];
+            source.forEach(t => {
+                if (!t) return;
+                const min = Math.max(1, Math.floor(Number(t.min)) || 1);
+                const rawMax = Number(t.max);
+                clean.push({
+                    min: min,
+                    max: Number.isFinite(rawMax) && rawMax >= min ? Math.floor(rawMax) : Infinity,
+                    markup: Math.max(0, Number(t.markup) || 0)
+                });
+            });
+            clean.sort((a, b) => a.min - b.min);
+            if (!clean.length) return normaliseTiers(FACTORY_TIERS);
+
+            return clean.map(tier => ({
+                min: tier.min,
+                max: tier.max,
+                markup: tier.markup,
+                range: intFmt(tier.min) + (tier.max === Infinity ? ' +' : ' – ' + intFmt(tier.max)),
+                short: intFmt(tier.min) + (tier.max === Infinity ? '+' : '–' + intFmt(tier.max))
+            }));
+        }
+
+        function normaliseBags(raw) {
+            const source = Array.isArray(raw) && raw.length ? raw : FACTORY_BAGS;
+            const clean = [];
+            source.forEach((b, index) => {
+                if (!b || typeof b !== 'object') return;
+                const cost = Number(b.cost);
+                if (!Number.isFinite(cost) || cost <= 0) return;
+                const override = Number(b.markup);
+                const hasOverride = b.markup != null && b.markup !== '' && Number.isFinite(override) && override >= 0;
+                clean.push({
+                    id: String(b.id || 'bag_' + index),
+                    category: String(b.category || 'Bag'),
+                    name: String(b.name || 'Unnamed bag'),
+                    ref: String(b.ref == null ? '' : b.ref),
+                    gsm: String(b.gsm == null ? '' : b.gsm),
+                    width: Number(b.width) || 0,
+                    height: Number(b.height) || 0,
+                    gusset: Number(b.gusset) || 0,
+                    minQty: Math.max(1, Math.floor(Number(b.minQty)) || 1),
+                    cost: cost,
+                    markup: hasOverride ? override : null,
+                    active: b.active !== false
+                });
+            });
+            return clean.length ? clean : FACTORY_BAGS.map(b => Object.assign({}, b));
+        }
+
+        function normaliseSettings(raw) {
+            const s = raw && typeof raw === 'object' ? raw : {};
+            const validity = Math.floor(Number(s.defaultValidityDays));
+            return {
+                minOrderQty: Math.max(1, Math.floor(Number(s.minOrderQty)) || FACTORY_SETTINGS.minOrderQty),
+                allowManualMarkup: s.allowManualMarkup === true,
+                defaultValidityDays: Number.isFinite(validity) ? Math.min(365, Math.max(1, validity)) : FACTORY_SETTINGS.defaultValidityDays,
+                defaultLeadTime: typeof s.defaultLeadTime === 'string' && s.defaultLeadTime.trim() ? s.defaultLeadTime : FACTORY_SETTINGS.defaultLeadTime,
+                companyName: typeof s.companyName === 'string' && s.companyName.trim() ? s.companyName : FACTORY_SETTINGS.companyName,
+                companyTagline: typeof s.companyTagline === 'string' && s.companyTagline.trim() ? s.companyTagline : FACTORY_SETTINGS.companyTagline,
+                defaultNotes: typeof s.defaultNotes === 'string' ? s.defaultNotes : ''
+            };
+        }
+
+        function applyRateCard(doc, source) {
+            // no document at all means "go back to the factory card"
+            const external = doc && typeof doc === 'object';
+            const input = external ? doc : { tiers: FACTORY_TIERS, bags: FACTORY_BAGS, settings: FACTORY_SETTINGS };
+            const bags = normaliseBags(input.bags);
+            const tiers = normaliseTiers(input.tiers);
+            if (!bags.length || !tiers.length) return false;
+
+            BAG_CATALOG = bags;
+            TIER_LADDER = tiers;
+            SETTINGS = normaliseSettings(input.settings);
+            MIN_ORDER_QTY = SETTINGS.minOrderQty;
+            ALLOW_MANUAL_MARKUP = SETTINGS.allowManualMarkup;
+            rateInfo = {
+                source: external ? (source || 'browser') : 'factory',
+                updatedAt: external && typeof input.updatedAt === 'string' ? input.updatedAt : null
+            };
+
+            // never leave the calculator pointing at a model the administrator retired
+            if (!BAG_CATALOG.some(b => b.id === state.bagId && b.active)) {
+                const first = BAG_CATALOG.filter(b => b.active)[0] || BAG_CATALOG[0];
+                state.bagId = first.id;
+            }
+            if (!ALLOW_MANUAL_MARKUP) {
+                state.markupMode = 'tier';
+                state.manualMarkup = 0.30;
+            }
+            state.baseCost = currentBag().cost;   // the cost always follows the rate card now
+            return true;
+        }
+
+        function readLocalRateCard() {
+            try {
+                const txt = localStorage.getItem(RATES_KEY);
+                return txt ? JSON.parse(txt) : null;
+            } catch (err) {
+                return null;
+            }
+        }
+
+        function rateStamp(doc) {
+            const t = doc && doc.updatedAt ? Date.parse(doc.updatedAt) : NaN;
+            return Number.isFinite(t) ? t : 0;
+        }
+
+        // optional: pick up the rate card shared through serve.js when it is newer
+        async function loadSharedRateCard() {
+            if (!/^https?:$/.test(location.protocol)) return false;
+            const local = readLocalRateCard();
+            let timer = null;
+            try {
+                const options = { cache: 'no-store' };
+                if (typeof AbortController === 'function') {
+                    const controller = new AbortController();
+                    options.signal = controller.signal;
+                    timer = setTimeout(() => controller.abort(), 2500);
+                }
+                const res = await fetch(RATES_ENDPOINT, options);
+                const payload = await res.json();
+                const remote = payload && payload.ok && payload.data ? payload.data : null;
+                if (remote && rateStamp(remote) >= rateStamp(local)) return applyRateCard(remote, 'server');
+            } catch (err) {
+                /* no server, offline, or a static host without the API - keep what we have */
+            } finally {
+                if (timer) clearTimeout(timer);
+            }
+            return false;
+        }
+
+        /* ---------- 3. Single source of truth ---------- */
+        const state = {
+            bagId: FACTORY_BAGS[0].id,
+            qty: 500,                 // kept as typed (string or number); normalised for maths
+            baseCost: FACTORY_BAGS[0].cost,   // internal only - the cost is never rendered on this page
+            addonCost: 0,
+            markupMode: 'tier',       // 'tier' | 'manual'
+            manualMarkup: 0.30,       // decimal fraction
+            quote: {
+                customer: '',
+                date: '',
+                validityDays: 14,
+                leadTime: DEFAULT_LEAD_TIME,
+                notes: ''
+            }
+        };
+        state.quote.date = todayISO();
+
+        let activeCategory = 'all';
+        let modalState = { query: '', cat: 'all', sort: 'default' };
+        /* ---------- 4. Helpers ---------- */
+        function $(id) { return document.getElementById(id); }
+
+        function lkr(value) {
+            const n = Number(value);
+            return 'Rs. ' + (Number.isFinite(n) ? round2(n) : 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+        /* Decimal-safe half-up rounding to 2 decimals.
+           Prevents binary float artefacts such as 45.55 × 1.30 = 59.214999… displaying as 59.21
+           instead of the correct commercial figure of 59.22.
+           Intermediates are never rounded — only what is shown to the customer. */
+        function round2(value) {
+            const n = Number(value);
+            if (!Number.isFinite(n)) return 0;
+            const shifted = n * 100 + (n >= 0 ? 1e-7 : -1e-7);
+            return Math.round(shifted) / 100;
+        }
+        function intFmt(value) { return (Number(value) || 0).toLocaleString('en-US'); }
+        function pct(value, decimals) {
+            const n = Number(value) || 0;
+            const out = (n * 100).toFixed(decimals == null ? 0 : decimals);
+            // 30.00 → 30, 42.50 → 42.5, 42.55 → 42.55
+            return out.replace(/(\.\d*[1-9])0+$/, '$1').replace(/\.0+$/, '') + '%';
+        }
+        function esc(value) {
+            return String(value == null ? '' : value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+        function bagById(id) {
+            return BAG_CATALOG.find(b => b.id === id)
+                || BAG_CATALOG.filter(b => b.active)[0]
+                || BAG_CATALOG[0];
+        }
+        function currentBag() { return bagById(state.bagId); }
+        function bagDims(bag) { return bag.width + ' × ' + bag.height + (bag.gusset ? ' × ' + bag.gusset : '') + ' cm'; }
+        function normalizeQty(value) {
+            const n = Math.floor(Number(value));
+            return Number.isFinite(n) && n >= 1 ? n : 1;
+        }
+        function tierFor(qty) {
+            const q = normalizeQty(qty);
+            return TIER_LADDER.find(t => q >= t.min && q <= t.max)
+                || (q < TIER_LADDER[0].min ? TIER_LADDER[0] : TIER_LADDER[TIER_LADDER.length - 1]);
+        }
+        function visibleItems() {
+            const live = BAG_CATALOG.filter(b => b.active);
+            return activeCategory === 'all' ? live : live.filter(b => b.category === activeCategory);
+        }
+        function todayISO() {
+            const d = new Date();
+            return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+        }
+        function addDaysISO(iso, days) {
+            const d = new Date((iso || todayISO()) + 'T00:00:00');
+            if (isNaN(d.getTime())) return todayISO();
+            d.setDate(d.getDate() + (Number(days) || 0));
+            return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+        }
+        function fmtDate(iso) {
+            const d = new Date((iso || '') + 'T00:00:00');
+            return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+
+        /* ---------- 5. Pricing engine ----------
+           unit price  = base cost × (1 + markup) + printing / addon
+           order total = unit price × quantity
+           ------------------------------------------------------------------ */
+        function computeQuote() {
+            const bag = currentBag();
+            const qty = normalizeQty(state.qty);
+
+            // the cost always comes from the rate card - the customer side can never type it
+            const baseCost = Number(bag.cost) > 0 ? Number(bag.cost) : FACTORY_BAGS[0].cost;
+
+            const rawAddon = Number(state.addonCost);
+            const addonCost = Number.isFinite(rawAddon) && rawAddon > 0 ? rawAddon : 0;
+
+            const tier = tierFor(qty);
+            const manual = ALLOW_MANUAL_MARKUP && state.markupMode === 'manual';
+            // a per-bag override in the rate card beats the quantity tier
+            const markup = manual
+                ? Math.max(0, Number(state.manualMarkup) || 0)
+                : (bag.markup == null ? tier.markup : bag.markup);
+
+            const unitBeforeAddon = baseCost * (1 + markup);
+            const unitPrice = unitBeforeAddon + addonCost;
+            const total = unitPrice * qty;
+
+            const topMarkup = TIER_LADDER.length ? TIER_LADDER[0].markup : markup;
+            const referenceUnit = baseCost * (1 + topMarkup) + addonCost;
+            const savingPerBag = Math.max(0, referenceUnit - unitPrice);
+            const savingPct = referenceUnit > 0 ? savingPerBag / referenceUnit : 0;
+
+            return {
+                bag, qty, baseCost, addonCost, tier, markup, manual,
+                unitBeforeAddon, unitPrice, total,
+                per1000: unitPrice * 1000,
+                savingPerBag, savingPct, savingTotal: savingPerBag * qty,
+                dims: bagDims(bag),
+                validUntil: addDaysISO(state.quote.date, state.quote.validityDays)
+            };
+        }
+        /* ---------- 6. state → inputs ---------- */
+        /* Price of one bag for any catalogue item at any quantity (no add-on). */
+        function unitPriceFor(bag, qty) {
+            const tier = tierFor(qty);
+            const markup = bag.markup == null ? tier.markup : bag.markup;
+            return Number(bag.cost) * (1 + markup);
+        }
+        function syncQtyInput() {
+            const el = $('qty-input');
+            if (el) el.value = String(normalizeQty(state.qty));
+        }
+        function syncAddonInput() {
+            const el = $('addon-cost-input');
+            if (!el) return;
+            const n = Number(state.addonCost);
+            el.value = (state.addonCost === '' || state.addonCost == null || !Number.isFinite(n)) ? '' : n.toFixed(2);
+        }
+        function syncMarkupVisibility() {
+            const box = $('markup-controls');
+            if (!box) return;
+            // markup controls only exist for trusted staff when the administrator allows it
+            box.hidden = !ALLOW_MANUAL_MARKUP;
+            box.classList.toggle('hidden', !ALLOW_MANUAL_MARKUP);
+        }
+        function syncMarkup() {
+            const manual = ALLOW_MANUAL_MARKUP && state.markupMode === 'manual';
+            $('mode-tier').setAttribute('aria-pressed', String(!manual));
+            $('mode-manual').setAttribute('aria-pressed', String(manual));
+            $('manual-markup-wrap').classList.toggle('hidden', !manual);
+            const percent = Math.round((Number(state.manualMarkup) || 0) * 10000) / 100;
+            $('markup-slider').value = String(Math.max(0, Math.min(100, Math.round(percent))));
+            $('manual-markup-input').value = String(percent);
+        }
+        function syncQuoteFields() {
+            $('quote-customer').value = state.quote.customer;
+            $('quote-date').value = state.quote.date;
+            $('quote-validity').value = String(state.quote.validityDays);
+            $('quote-leadtime').value = state.quote.leadTime;
+            $('quote-notes').value = state.quote.notes;
+        }
+        function syncCategoryChips() {
+            document.querySelectorAll('#cat-chips [data-cat]').forEach(btn => {
+                const on = btn.dataset.cat === activeCategory;
+                btn.classList.toggle('chip-active', on);
+                btn.setAttribute('aria-pressed', String(on));
+            });
+            CATEGORY_TABS.forEach(tab => {
+                const el = $(tab.countId);
+                if (!el) return;
+                const live = BAG_CATALOG.filter(b => b.active);
+                el.innerText = String(tab.key === 'all'
+                    ? live.length
+                    : live.filter(b => b.category === tab.key).length);
+            });
+        }
+        function syncModalChips() {
+            document.querySelectorAll('#modal-cat-chips [data-mcat]').forEach(btn => {
+                const on = btn.dataset.mcat === modalState.cat;
+                btn.classList.toggle('chip-active', on);
+                btn.setAttribute('aria-pressed', String(on));
+            });
+        }
+        function syncAllInputs() {
+            syncQtyInput(); syncAddonInput(); syncMarkup(); syncMarkupVisibility(); syncQuoteFields(); syncCategoryChips();
+        }
+
+        /* ---------- 7. Selection changes ---------- */
+        function populateBagDropdown() {
+            const select = $('bag-select');
+            const items = visibleItems();
+            let bagChanged = false;
+
+            if (!items.some(b => b.id === state.bagId) && items.length) {
+                // the selected model is not in this filter — fall back to the first match
+                state.bagId = items[0].id;
+                state.baseCost = items[0].cost;
+                bagChanged = true;
+            }
+
+            select.innerHTML = items.map(b =>
+                '<option value="' + b.id + '">' + esc(b.name) + ' — ' + esc(b.ref) + ' · ' + bagDims(b) + '</option>'
+            ).join('');
+            select.value = state.bagId;
+
+            const hint = $('bag-count-hint');
+            if (hint) {
+                hint.innerHTML = 'Showing <strong>' + items.length + '</strong> of ' + BAG_CATALOG.filter(b => b.active).length + ' models'
+                    + (activeCategory === 'all' ? '' : ' in <strong>' + esc(activeCategory) + '</strong>')
+                    + ' · prices update instantly as you type.';
+            }
+            return bagChanged;
+        }
+
+        function selectBag(id, options) {
+            const bag = BAG_CATALOG.find(b => b.id === id);
+            if (!bag) return;
+            state.bagId = bag.id;
+            state.baseCost = bag.cost;                 // a new model always starts from its catalogue cost
+            if (activeCategory !== 'all' && bag.category !== activeCategory) {
+                activeCategory = bag.category;
+                syncCategoryChips();
+            }
+            populateBagDropdown();
+            renderAll();
+            update3DBagModel();
+            renderCatalogModalTable();
+            if (options && options.toast) {
+                showToast(bag.name + ' loaded · ' + lkr(computeQuote().unitPrice) + ' / bag at ' + intFmt(normalizeQty(state.qty)) + ' bags.', 'info');
+            }
+        }
+
+        function setCategory(category) {
+            activeCategory = category;
+            const bagChanged = populateBagDropdown();
+            syncCategoryChips();
+            if (bagChanged) update3DBagModel();
+            renderAll();
+        }
+
+        function setQty(value) {
+            state.qty = normalizeQty(value);
+            syncQtyInput();
+            renderAll();
+        }
+
+        function stepQty(direction) {
+            const qty = normalizeQty(state.qty);
+            const step = qty < 500 ? 10 : (qty < 5000 ? 100 : 1000);
+            setQty(qty + direction * step);
+        }
+
+        function setMarkupMode(mode) {
+            // guarded: the manual markup control is only offered when the administrator enables it
+            if (!ALLOW_MANUAL_MARKUP) {
+                state.markupMode = 'tier';
+                syncMarkup();
+                renderAll();
+                return;
+            }
+            state.markupMode = mode === 'manual' ? 'manual' : 'tier';
+            syncMarkup();
+            renderAll();
+        }
+        /* ---------- 8. Rendering ---------- */
+        function renderAll() {
+            const q = computeQuote();
+            syncMarkupVisibility();
+            renderSpecs(q);
+            renderPricing(q);
+            renderWarnings(q);
+            renderTierTable(q);
+            renderQuotePreview(q);
+            renderMobileBar(q);
+            renderRateSource();
+            scheduleSave();
+            return q;
+        }
+
+        function renderRateSource() {
+            const el = $('rate-source');
+            if (!el) return;
+            const target = (typeof el.querySelector === 'function' && el.querySelector('span')) || el;
+            const when = rateInfo.updatedAt ? ' on ' + fmtDate(String(rateInfo.updatedAt).slice(0, 10)) : '';
+            if (rateInfo.source === 'server') {
+                target.innerText = 'Rate card: published by the administrator' + when + ' and shared through this local server.';
+            } else if (rateInfo.source === 'browser') {
+                target.innerText = 'Rate card: saved by the administrator in this browser' + when + '.';
+            } else {
+                target.innerText = 'Rate card: factory defaults - the administrator has not published any changes yet.';
+            }
+        }
+
+        function renderSpecs(q) {
+            $('spec-ref').innerText = q.bag.ref;
+            $('spec-gsm').innerText = q.bag.gsm;
+            $('spec-dims').innerText = q.bag.width + '×' + q.bag.height + (q.bag.gusset ? '×' + q.bag.gusset : '');
+            $('spec-min').innerText = intFmt(q.bag.minQty) + ' bags';
+        }
+
+        function renderPricing(q) {
+            const manual = q.manual;
+
+            $('tier-badge').innerText = manual
+                ? 'Negotiated rate'
+                : 'Rate for ' + q.tier.range + ' bags';
+
+            $('out-unit-price').innerText = lkr(q.unitPrice);
+            $('out-total-price').innerText = lkr(q.total);
+            $('out-total-qty').innerText = 'for ' + intFmt(q.qty) + ' bags';
+            $('out-item-name').innerText = q.bag.name + ' · ' + q.bag.category;
+
+            $('break-addon').innerText = lkr(q.addonCost);
+            $('out-per-1000').innerText = lkr(q.per1000);
+            $('out-savings').innerText = q.savingPerBag > 0.005
+                ? lkr(q.savingPerBag) + ' / bag'
+                : '—';
+            $('out-saving-total').innerText = q.savingTotal > 0.005
+                ? lkr(q.savingTotal)
+                : '—';
+
+            $('formula-line').innerText = lkr(q.unitPrice) + ' / bag × ' + intFmt(q.qty) + ' bags = ' + lkr(q.total)
+                + (q.addonCost > 0 ? '   (includes ' + lkr(q.addonCost) + ' printing / add-on per bag)' : '');
+
+            const note = $('tier-note');
+            note.innerText = manual ? 'Negotiated rate' : 'Rate for ' + q.tier.short;
+            note.className = 'tag shrink-0 ' + (manual ? 'tag-lime' : 'tag-info');
+
+            if ($('markup-hint')) {
+                $('markup-hint').innerText = manual
+                    ? 'Negotiated rate of +' + pct(q.markup, 2) + ' is applied to every quantity. The table below is for reference only.'
+                    : 'Applied automatically from the ' + q.tier.range + ' rate. Switch to Manual % to quote a custom rate.';
+            }
+        }
+
+        function noteIcon(type) {
+            const map = {
+                warn: 'fa-solid fa-triangle-exclamation',
+                info: 'fa-solid fa-circle-info',
+                ok: 'fa-solid fa-circle-check'
+            };
+            return '<i class="' + (map[type] || map.info) + ' mt-px"></i>';
+        }
+
+        function renderWarnings(q) {
+            const items = [];
+
+            if (q.qty < MIN_ORDER_QTY) {
+                items.push(['warn', 'The catalogue minimum order is ' + intFmt(MIN_ORDER_QTY) + ' bags. The price above uses the ' + TIER_LADDER[0].range + ' rate.']);
+            } else if (q.qty < q.bag.minQty) {
+                items.push(['warn', q.bag.name + ' has a recommended minimum of ' + intFmt(q.bag.minQty) + ' bags — this quantity may not be accepted.']);
+            } else {
+                items.push(['ok', intFmt(q.qty) + ' bags meets the catalogue minimum for ' + q.bag.name + '.']);
+            }
+            if (q.tier === TIER_LADDER[TIER_LADDER.length - 1]) {
+                items.push(['ok', 'Best rate reached — this is the lowest price per bag on the rate card.']);
+            }
+            if (q.bag.markup != null && !q.manual) {
+                items.push(['info', 'The quantity rate agreed for this model is applied to the whole order.']);
+            }
+
+            $('qty-warning').innerHTML = items.map(it =>
+                '<p class="note note-' + it[0] + '">' + noteIcon(it[0]) + '<span>' + esc(it[1]) + '</span></p>'
+            ).join('');
+        }
+
+        function renderTierTable(q) {
+            $('tier-rows').innerHTML = TIER_LADDER.map(tier => {
+                const markup = q.bag.markup == null ? tier.markup : q.bag.markup;
+                const price = q.baseCost * (1 + markup) + q.addonCost;
+                const inQtyTier = q.qty >= tier.min && q.qty <= tier.max;
+                const applied = q.manual ? Math.abs(markup - q.markup) < 1e-9 : inQtyTier;
+
+                let status;
+                if (applied) status = '<span class="tag tag-active">Applied</span>';
+                else if (inQtyTier) status = '<span class="tag tag-info">Your quantity</span>';
+                else status = '<button type="button" class="btn-tiny" data-qty="' + tier.min + '">Quote at ' + tier.short + '</button>';
+
+                return '<tr class="' + (applied ? 'tier-row-active' : '') + '">'
+                    + '<td class="t-strong mono">' + tier.range + '</td>'
+                    + '<td class="num t-price mono">' + lkr(price) + '</td>'
+                    + '<td class="t-muted">' + status + '</td>'
+                    + '</tr>';
+            }).join('');
+        }
+
+        function renderMobileBar(q) {
+            $('m-unit').innerText = lkr(q.unitPrice);
+            $('m-total').innerText = lkr(q.total);
+            $('m-qty').innerText = intFmt(q.qty);
+        }
+        /* ---------- 9. Quotation sheet ---------- */
+        function renderQuotePreview(q) {
+            const customer = (state.quote.customer || '').trim();
+            const notes = (state.quote.notes || '').trim();
+
+            $('print-area').innerHTML = `
+                <div class="flex items-start justify-between gap-4 pb-4 border-b-2 border-emerald-700">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-700 to-lime-500 text-white flex items-center justify-center"><i class="fa-solid fa-leaf"></i></div>
+                        <div>
+                            <p class="font-extrabold text-slate-900 tracking-tight leading-tight">${esc(SETTINGS.companyName)}</p>
+                            <p class="text-[11px] text-slate-500">${esc(SETTINGS.companyTagline)}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-[11px] font-bold uppercase tracking-widest text-emerald-700">Quotation</p>
+                        <p class="mono text-[11px] text-slate-600">${esc(QUOTE_REF)}</p>
+                        <p class="text-[11px] text-slate-500">${esc(fmtDate(state.quote.date))}</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 py-4 text-xs">
+                    <div>
+                        <p class="text-[10px] uppercase font-bold text-slate-400">Prepared for</p>
+                        <p class="font-semibold text-slate-800">${esc(customer || '—')}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-[10px] uppercase font-bold text-slate-400">Valid until</p>
+                        <p class="font-semibold text-slate-800">${esc(fmtDate(q.validUntil))}</p>
+                    </div>
+                </div>
+
+                <table class="tbl">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Specification</th>
+                            <th class="num">Qty</th>
+                            <th class="num">Unit price</th>
+                            <th class="num">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <span class="t-strong block">${esc(q.bag.name)}</span>
+                                <span class="t-muted">${esc(q.bag.ref)}</span>
+                            </td>
+                            <td class="t-muted mono">${esc(q.dims)} · ${esc(q.bag.gsm)} GSM</td>
+                            <td class="num mono">${intFmt(q.qty)}</td>
+                            <td class="num mono">${lkr(q.unitPrice)}</td>
+                            <td class="num mono t-strong">${lkr(q.total)}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="flex justify-end mt-4">
+                    <div class="w-full sm:w-80 text-[12px] space-y-1.5">
+                        <div class="flex justify-between"><span class="t-muted">Rate for ${intFmt(q.qty)} bags</span><span class="mono t-strong">${lkr(q.unitBeforeAddon)}</span></div>
+                        ${q.addonCost > 0 ? '<div class="flex justify-between"><span class="t-muted">Printing / add-on per bag</span><span class="mono t-strong">' + lkr(q.addonCost) + '</span></div>' : ''}
+                        <div class="flex justify-between border-t border-emerald-100 pt-1.5"><span class="font-semibold text-slate-700">Unit price per bag</span><span class="mono t-price">${lkr(q.unitPrice)}</span></div>
+                        <div class="flex justify-between bg-emerald-50 rounded-lg px-2 py-1.5"><span class="font-bold text-emerald-900">Total order value</span><span class="mono font-extrabold text-emerald-900">${lkr(q.total)}</span></div>
+                        <div class="flex justify-between"><span class="t-muted">Price per 1,000 bags</span><span class="mono t-muted">${lkr(q.per1000)}</span></div>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-t border-emerald-100 text-[11px] text-slate-600 space-y-1">
+                    <p><span class="font-semibold text-slate-700">Production lead time:</span> ${esc(state.quote.leadTime || '—')}</p>
+                    <p><span class="font-semibold text-slate-700">Validity:</span> valid for ${esc(String(state.quote.validityDays))} day(s) from the date above.</p>
+                    ${notes ? '<p><span class="font-semibold text-slate-700">Notes:</span> ' + esc(notes) + '</p>' : ''}
+                    <p class="text-slate-500">All prices are in Sri Lankan Rupees (LKR). Price per bag reflects the order quantity rate for ${esc(q.tier.range)} bags${q.manual ? ' and an agreed negotiated rate for this order' : ''}.</p>
+                </div>`;
+        }
+        function buildQuoteText(q) {
+            const lines = [
+                SETTINGS.companyName + ' — QUOTATION',
+                'Ref: ' + QUOTE_REF,
+                'Date: ' + fmtDate(state.quote.date),
+                'Valid until: ' + fmtDate(q.validUntil),
+                state.quote.customer ? 'Prepared for: ' + state.quote.customer : null,
+                '',
+                'ITEM',
+                '  ' + q.bag.name + ' (' + q.bag.category + ')',
+                '  Reference: ' + q.bag.ref,
+                '  Specification: ' + q.dims + ' · ' + q.bag.gsm + ' GSM',
+                '  Order quantity: ' + intFmt(q.qty) + ' bags',
+                '',
+                'PRICING',
+                '  Rate for ' + intFmt(q.qty) + ' bags: ' + lkr(q.unitBeforeAddon) + ' / bag',
+                q.addonCost > 0 ? '  Printing / add-on: ' + lkr(q.addonCost) + ' / bag' : null,
+                '',
+                '  UNIT PRICE: ' + lkr(q.unitPrice) + ' / bag',
+                '  TOTAL ORDER VALUE: ' + lkr(q.total),
+                '  Price per 1,000 bags: ' + lkr(q.per1000),
+                '',
+                'TERMS',
+                '  Production lead time: ' + (state.quote.leadTime || '-'),
+                '  Validity: ' + state.quote.validityDays + ' day(s)',
+                state.quote.notes ? '  Notes: ' + state.quote.notes : null,
+                '',
+                'All prices are in Sri Lankan Rupees (LKR).'
+            ].filter(line => line !== null);
+            return lines.join('\n');
+        }
+
+        /* ---------- 10. Toast ---------- */
+        let toastTimer = null;
+        function showToast(message, type) {
+            const kind = type || 'success';
+            const icons = {
+                success: 'fa-solid fa-circle-check',
+                info: 'fa-solid fa-circle-info',
+                warn: 'fa-solid fa-triangle-exclamation'
+            };
+            const toast = $('toast');
+            toast.className = 'toast toast-' + kind;
+            $('toast-icon').className = (icons[kind] || icons.success) + ' text-base';
+            $('toast-text').innerText = message;
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => toast.classList.add('toast-hidden'), 3400);
+        }
+
+        /* ---------- 11. Export / reset actions ---------- */
+        function legacyCopy(text) {
+            const area = document.createElement('textarea');
+            area.value = text;
+            area.setAttribute('readonly', '');
+            area.style.position = 'fixed';
+            area.style.top = '-1000px';
+            area.style.opacity = '0';
+            document.body.appendChild(area);
+            area.select();
+            area.setSelectionRange(0, text.length);
+            const ok = document.execCommand('copy');
+            document.body.removeChild(area);
+            if (!ok) throw new Error('execCommand copy failed');
+        }
+
+        async function copyQuotation() {
+            const text = buildQuoteText(computeQuote());
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(text);
+                } else {
+                    legacyCopy(text);
+                }
+                showToast('Quotation copied to the clipboard.', 'success');
+            } catch (err) {
+                try {
+                    legacyCopy(text);
+                    showToast('Quotation copied to the clipboard.', 'success');
+                } catch (err2) {
+                    showToast('Copy was blocked by the browser — select the quotation text manually.', 'warn');
+                }
+            }
+        }
+
+        function printQuotation() {
+            showToast('Opening the print dialog — choose “Save as PDF” to export.', 'info');
+            setTimeout(() => window.print(), 250);
+        }
+
+        function resetQuote() {
+            const bag = BAG_CATALOG.filter(b => b.active)[0] || BAG_CATALOG[0];
+            state.bagId = bag.id;
+            state.qty = 500;
+            state.baseCost = bag.cost;
+            state.addonCost = 0;
+            state.markupMode = 'tier';          // a fresh quotation always uses the rate card
+            state.manualMarkup = 0.30;
+            state.quote = {
+                customer: '',
+                date: todayISO(),
+                validityDays: SETTINGS.defaultValidityDays,
+                leadTime: SETTINGS.defaultLeadTime,
+                notes: SETTINGS.defaultNotes
+            };
+            activeCategory = 'all';
+            populateBagDropdown();
+            syncAllInputs();
+            renderAll();
+            update3DBagModel();
+            renderCatalogModalTable();
+            showToast('Calculator reset to catalogue defaults.', 'info');
+        }
+        /* ---------- 12. Persistence: URL hash + localStorage ---------- */
+        let saveTimer = null;
+        function scheduleSave() {
+            clearTimeout(saveTimer);
+            saveTimer = setTimeout(persistState, 400);
+        }
+
+        function persistState() {
+            const addon = (state.addonCost === '' || state.addonCost == null) ? '' : String(state.addonCost);
+
+            try {
+                const params = new URLSearchParams();
+                params.set('bag', state.bagId);
+                params.set('qty', String(normalizeQty(state.qty)));
+                params.set('addon', addon);
+                params.set('d', state.quote.date);
+                params.set('v', String(state.quote.validityDays));
+                params.set('lt', state.quote.leadTime);
+                // cost and markup only travel in the link when the administrator allows overrides,
+                // otherwise a visitor could probe the price to reverse-engineer the cost
+                if (ALLOW_MANUAL_MARKUP) {
+                    params.set('base', String(state.baseCost));
+                    params.set('mode', state.markupMode);
+                    params.set('m', String(state.manualMarkup));
+                }
+                if (state.quote.customer) params.set('c', state.quote.customer);
+                if (state.quote.notes) params.set('n', state.quote.notes);
+                history.replaceState(null, '', '#' + params.toString());
+            } catch (err) { /* deep links are optional */ }
+
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                    bagId: state.bagId,
+                    qty: state.qty,
+                    addonCost: state.addonCost,
+                    markupMode: ALLOW_MANUAL_MARKUP ? state.markupMode : 'tier',
+                    manualMarkup: ALLOW_MANUAL_MARKUP ? state.manualMarkup : 0.30,
+                    quote: state.quote
+                }));
+            } catch (err) { /* private mode or restricted file:// storage */ }
+        }
+
+        function applyState(data) {
+            if (!data || typeof data !== 'object') return;
+
+            const bag = BAG_CATALOG.find(b => b.id === data.bagId);
+            if (bag) state.bagId = bag.id;
+
+            if (data.qty != null && data.qty !== '') state.qty = normalizeQty(data.qty);
+
+            // the cost is never read from a link or from storage - it always follows the rate card
+            state.baseCost = bag ? bag.cost : currentBag().cost;
+
+            const addon = Number(data.addonCost);
+            state.addonCost = Number.isFinite(addon) && addon > 0 ? addon : 0;
+
+            // markup mode and the manual percentage are ignored unless the administrator allows them
+            state.markupMode = ALLOW_MANUAL_MARKUP && data.markupMode === 'manual' ? 'manual' : 'tier';
+
+            const markup = Number(data.manualMarkup);
+            state.manualMarkup = Number.isFinite(markup) && markup >= 0 ? markup : 0.30;
+
+            const q = data.quote || {};
+            state.quote = {
+                customer: typeof q.customer === 'string' ? q.customer : '',
+                date: /^\d{4}-\d{2}-\d{2}$/.test(q.date || '') ? q.date : todayISO(),
+                validityDays: Math.min(365, Math.max(1, Number(q.validityDays) || SETTINGS.defaultValidityDays)),
+                leadTime: (typeof q.leadTime === 'string' && q.leadTime) ? q.leadTime : SETTINGS.defaultLeadTime,
+                notes: typeof q.notes === 'string' ? q.notes : ''
+            };
+        }
+
+        let restoredFromStorage = false;
+        function restoreState() {
+            let data = null;
+            try {
+                const hash = location.hash.replace(/^#/, '');
+                const params = new URLSearchParams(hash);
+                if (params.get('bag')) {
+                    data = {
+                        bagId: params.get('bag'),
+                        qty: params.get('qty'),
+                        baseCost: params.get('base'),
+                        addonCost: params.get('addon'),
+                        markupMode: params.get('mode'),
+                        manualMarkup: params.get('m'),
+                        quote: {
+                            customer: params.get('c') || '',
+                            date: params.get('d') || todayISO(),
+                            validityDays: params.get('v') || 14,
+                            leadTime: params.get('lt') || DEFAULT_LEAD_TIME,
+                            notes: params.get('n') || ''
+                        }
+                    };
+                }
+            } catch (err) { /* ignore malformed hashes */ }
+
+            if (!data) {
+                try {
+                    const stored = localStorage.getItem(STORAGE_KEY);
+                    if (stored) data = JSON.parse(stored);
+                } catch (err) { /* ignore unreadable storage */ }
+            }
+
+            if (data) restoredFromStorage = true;
+            applyState(data);
+        }
+
+        /* a brand new visitor gets the administrator's quotation defaults */
+        function applyQuoteDefaults() {
+            state.quote.date = todayISO();
+            state.quote.validityDays = SETTINGS.defaultValidityDays;
+            state.quote.leadTime = SETTINGS.defaultLeadTime;
+            state.quote.notes = SETTINGS.defaultNotes;
+        }
+        /* ---------- 13. Catalogue modal ---------- */
+        let modalOpener = null;
+
+        function modalItems() {
+            let items = BAG_CATALOG.filter(b => b.active);
+            if (modalState.cat !== 'all') items = items.filter(b => b.category === modalState.cat);
+
+            const query = modalState.query.trim().toLowerCase();
+            if (query) {
+                items = items.filter(b => (b.name + ' ' + b.ref + ' ' + b.category + ' ' + b.gsm).toLowerCase().indexOf(query) !== -1);
+            }
+
+            if (modalState.sort === 'name') items.sort((a, b) => a.name.localeCompare(b.name));
+            else if (modalState.sort === 'category') items.sort((a, b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name));
+            else if (modalState.sort === 'minorder') items.sort((a, b) => a.minQty - b.minQty);
+            else if (modalState.sort === 'size') items.sort((a, b) => (b.width * b.height) - (a.width * a.height));
+
+            return items;
+        }
+
+        function renderCatalogModalTable() {
+            const tbody = $('catalog-modal-table');
+            if (!tbody) return;
+
+            const items = modalItems();
+            const liveCount = BAG_CATALOG.filter(b => b.active).length;
+            $('modal-result-count').innerText = 'Showing ' + items.length + ' of ' + liveCount + ' models · prices are per bag at ' + intFmt(normalizeQty(state.qty)) + ' bags';
+
+            if (!items.length) {
+                tbody.innerHTML = '<tr><td colspan="8" class="center t-muted">No models match “' + esc(modalState.query) + '”. Try another search or bag type.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = items.map(b => {
+                const current = b.id === state.bagId;
+                return '<tr class="' + (current ? 'tier-row-active' : '') + '">'
+                    + '<td><span class="t-strong">' + esc(b.name) + '</span> ' + (current ? '<span class="tag tag-active">Selected</span>' : '') + '</td>'
+                    + '<td class="t-muted">' + esc(b.category) + '</td>'
+                    + '<td class="t-accent">' + esc(b.ref) + '</td>'
+                    + '<td class="t-muted mono">' + esc(b.gsm) + '</td>'
+                    + '<td class="t-muted mono">' + b.width + '×' + b.height + (b.gusset ? '×' + b.gusset : '') + '</td>'
+                    + '<td class="num t-muted mono">' + intFmt(b.minQty) + '</td>'
+                    + '<td class="num t-price mono">' + lkr(unitPriceFor(b, normalizeQty(state.qty))) + '</td>'
+                    + '<td class="num"><button type="button" class="btn-tiny" data-bag="' + b.id + '"' + (current ? ' disabled' : '') + '>' + (current ? 'In use' : 'Select') + '</button></td>'
+                    + '</tr>';
+            }).join('');
+        }
+
+        function openCatalogModal() {
+            modalOpener = document.activeElement;
+            $('catalog-modal').classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+            syncModalChips();
+            renderCatalogModalTable();
+            setTimeout(() => { const search = $('modal-search'); if (search) search.focus(); }, 40);
+        }
+
+        function closeCatalogModal() {
+            $('catalog-modal').classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+            if (modalOpener && typeof modalOpener.focus === 'function') modalOpener.focus();
+        }
+
+        function handleModalKeys(event) {
+            const modal = $('catalog-modal');
+            if (modal.classList.contains('hidden')) return;
+
+            if (event.key === 'Escape') { closeCatalogModal(); return; }
+            if (event.key !== 'Tab') return;
+
+            const focusable = Array.prototype.slice.call(
+                modal.querySelectorAll('button:not([disabled]), input, select, textarea, a[href]')
+            );
+            if (!focusable.length) return;
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+
+            if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+            else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+        }
+        /* ---------- 14. Events ---------- */
+        function bindEvents() {
+            /* Step 1 — model & bag type */
+            $('bag-select').addEventListener('change', (e) => selectBag(e.target.value));
+            $('cat-chips').addEventListener('click', (e) => {
+                const btn = e.target.closest('[data-cat]');
+                if (btn) setCategory(btn.dataset.cat);
+            });
+
+            /* Step 2 — quantity */
+            $('qty-input').addEventListener('input', (e) => { state.qty = e.target.value; renderAll(); });
+            $('qty-input').addEventListener('blur', () => { syncQtyInput(); renderAll(); });
+            $('qty-presets').addEventListener('click', (e) => {
+                const btn = e.target.closest('[data-qty]');
+                if (btn) setQty(Number(btn.dataset.qty));
+            });
+            $('btn-qty-plus').addEventListener('click', () => stepQty(1));
+            $('btn-qty-minus').addEventListener('click', () => stepQty(-1));
+
+            /* Step 3 — additional charges */
+            $('addon-cost-input').addEventListener('input', (e) => { state.addonCost = e.target.value; renderAll(); });
+
+            $('mode-tier').addEventListener('click', () => setMarkupMode('tier'));
+            $('mode-manual').addEventListener('click', () => setMarkupMode('manual'));
+            $('btn-markup-auto').addEventListener('click', () => {
+                setMarkupMode('tier');
+                showToast('Markup set back to the quantity tier rate.', 'info');
+            });
+            $('manual-markup-input').addEventListener('input', (e) => {
+                const percent = Math.max(0, Math.min(500, Number(e.target.value) || 0));
+                state.manualMarkup = percent / 100;
+                $('markup-slider').value = String(Math.max(0, Math.min(100, Math.round(percent))));
+                renderAll();
+            });
+            $('markup-slider').addEventListener('input', (e) => {
+                state.manualMarkup = Number(e.target.value) / 100;
+                $('manual-markup-input').value = e.target.value;
+                renderAll();
+            });
+
+            /* Step 4 — quotation details */
+            $('quote-customer').addEventListener('input', (e) => { state.quote.customer = e.target.value; renderAll(); });
+            $('quote-date').addEventListener('change', (e) => { state.quote.date = e.target.value || todayISO(); renderAll(); });
+            $('quote-validity').addEventListener('input', (e) => {
+                state.quote.validityDays = Math.max(1, Math.min(365, Number(e.target.value) || 1));
+                renderAll();
+            });
+            $('quote-leadtime').addEventListener('input', (e) => { state.quote.leadTime = e.target.value; renderAll(); });
+            $('quote-notes').addEventListener('input', (e) => { state.quote.notes = e.target.value; renderAll(); });
+
+            /* Actions */
+            $('btn-copy').addEventListener('click', copyQuotation);
+            $('m-copy').addEventListener('click', copyQuotation);
+            $('btn-print').addEventListener('click', printQuotation);
+            $('btn-reset').addEventListener('click', resetQuote);
+            $('tier-rows').addEventListener('click', (e) => {
+                const btn = e.target.closest('[data-qty]');
+                if (btn) setQty(Number(btn.dataset.qty));
+            });
+
+            /* Catalogue modal */
+            $('btn-catalog').addEventListener('click', openCatalogModal);
+            $('modal-close').addEventListener('click', closeCatalogModal);
+            $('catalog-modal').addEventListener('mousedown', (e) => {
+                if (e.target === $('catalog-modal')) closeCatalogModal();
+            });
+            $('modal-search').addEventListener('input', (e) => { modalState.query = e.target.value; renderCatalogModalTable(); });
+            $('modal-sort').addEventListener('change', (e) => { modalState.sort = e.target.value; renderCatalogModalTable(); });
+            $('modal-cat-chips').addEventListener('click', (e) => {
+                const btn = e.target.closest('[data-mcat]');
+                if (!btn) return;
+                modalState.cat = btn.dataset.mcat;
+                syncModalChips();
+                renderCatalogModalTable();
+            });
+            $('catalog-modal-table').addEventListener('click', (e) => {
+                const btn = e.target.closest('[data-bag]');
+                if (!btn || btn.disabled) return;
+                selectBag(btn.dataset.bag, { toast: true });
+                closeCatalogModal();
+            });
+            document.addEventListener('keydown', handleModalKeys);
+
+            /* 3D viewer controls */
+            $('btn-3d-reset').addEventListener('click', reset3DView);
+            $('btn-3d-toggle').addEventListener('click', toggle3DPanel);
+        }
+
+        /* ---------- 15. Boot ---------- */
+        function boot() {
+            /* 1. rate card saved in this browser by the administrator (synchronous, so the
+                  first paint already shows the real prices) */
+            const local = readLocalRateCard();
+            if (local) applyRateCard(local, 'browser');
+
+            try {
+                restoreState();
+            } catch (err) {
+                console.warn('Saved quotation could not be restored.', err);
+            }
+
+            if (!restoredFromStorage) applyQuoteDefaults();
+            bindEvents();
+            refreshUi();
+
+            try {
+                init3DViewer();
+            } catch (err) {
+                console.warn('3D preview unavailable.', err);
+                show3DFallback('3D preview could not be started in this browser.');
+            }
+
+            /* 2. an optional newer copy shared through serve.js */
+            loadSharedRateCard().then(changed => {
+                if (!changed) return;
+                if (!restoredFromStorage) applyQuoteDefaults();
+                refreshUi();
+            });
+        }
+
+        function refreshUi() {
+            populateBagDropdown();
+            syncAllInputs();
+            renderAll();
+            renderCatalogModalTable();
+        }
+
+        document.addEventListener('DOMContentLoaded', boot);
+        /* ---------- 16. Optional 3D preview (fully non-critical) ---------- */
+        let scene, camera, renderer, bagGroup;
+        let nonWovenBumpMap, nonWovenFaceTexture;
+        let isDragging = false;
+        let autoSpin = true;
+        let previousMousePosition = { x: 0, y: 0 };
+
+        function show3DFallback(message) {
+            const container = $('bag-3d-canvas-container');
+            if (!container) return;
+            const spinner = $('spinner-3d-loading');
+            if (spinner) spinner.remove();
+            container.style.cursor = 'default';
+            container.innerHTML = '<div class="text-center px-6">'
+                + '<i class="fa-solid fa-cube text-2xl text-emerald-500"></i>'
+                + '<p class="text-xs font-semibold text-emerald-900 mt-2">' + esc(message) + '</p>'
+                + '<p class="text-[11px] text-slate-500 mt-1">The pricing calculator works exactly the same without the 3D preview.</p>'
+                + '</div>';
+        }
+
+        function webglAvailable() {
+            try {
+                const probe = document.createElement('canvas');
+                return !!(window.WebGLRenderingContext && (probe.getContext('webgl') || probe.getContext('experimental-webgl')));
+            } catch (err) {
+                return false;
+            }
+        }
+
+        // Procedural non-woven polypropylene dimple texture + printed MHS brand face
+        function createProceduralTextures() {
+            const bumpCanvas = document.createElement('canvas');
+            bumpCanvas.width = 512;
+            bumpCanvas.height = 512;
+            const ctx = bumpCanvas.getContext('2d');
+            if (!ctx) return;
+
+            ctx.fillStyle = '#808080';
+            ctx.fillRect(0, 0, 512, 512);
+
+            const dotSpacing = 8;
+            for (let x = 0; x < 512; x += dotSpacing) {
+                for (let y = 0; y < 512; y += dotSpacing) {
+                    const shift = ((y / dotSpacing) % 2 === 0) ? 0 : dotSpacing / 2;
+                    const px = (x + shift) % 512;
+                    const grad = ctx.createRadialGradient(px, y, 0, px, y, 2.5);
+                    grad.addColorStop(0, '#ffffff');
+                    grad.addColorStop(0.7, '#a0a0a0');
+                    grad.addColorStop(1, '#404040');
+                    ctx.fillStyle = grad;
+                    ctx.beginPath();
+                    ctx.arc(px, y, 2.2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            nonWovenBumpMap = new THREE.CanvasTexture(bumpCanvas);
+            nonWovenBumpMap.wrapS = THREE.RepeatWrapping;
+            nonWovenBumpMap.wrapT = THREE.RepeatWrapping;
+            nonWovenBumpMap.repeat.set(4, 4);
+
+            const faceCanvas = document.createElement('canvas');
+            faceCanvas.width = 512;
+            faceCanvas.height = 512;
+            const fCtx = faceCanvas.getContext('2d');
+            if (!fCtx) return;
+
+            fCtx.fillStyle = '#15803d';
+            fCtx.fillRect(0, 0, 512, 512);
+
+            fCtx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+            for (let i = 0; i < 3000; i++) {
+                fCtx.fillRect(Math.random() * 512, Math.random() * 512, 1.5, 1.5);
+            }
+
+            fCtx.save();
+            fCtx.translate(256, 210);
+            fCtx.fillStyle = '#84cc16';
+            fCtx.beginPath();
+            fCtx.moveTo(0, -50);
+            fCtx.bezierCurveTo(40, -50, 60, -10, 0, 50);
+            fCtx.bezierCurveTo(-60, -10, -40, -50, 0, -50);
+            fCtx.fill();
+            fCtx.strokeStyle = '#15803d';
+            fCtx.lineWidth = 3;
+            fCtx.beginPath();
+            fCtx.moveTo(0, -40);
+            fCtx.quadraticCurveTo(5, 0, 0, 35);
+            fCtx.stroke();
+            fCtx.restore();
+
+            fCtx.fillStyle = '#ffffff';
+            fCtx.font = 'bold 38px Inter, sans-serif';
+            fCtx.textAlign = 'center';
+            fCtx.fillText('MHS PACKAGING', 256, 310);
+
+            fCtx.fillStyle = '#a3e635';
+            fCtx.font = '600 18px Inter, sans-serif';
+            fCtx.fillText('100% ECO NON-WOVEN', 256, 340);
+
+            fCtx.strokeStyle = 'rgba(255,255,255,0.4)';
+            fCtx.lineWidth = 2;
+            fCtx.setLineDash([8, 6]);
+            fCtx.strokeRect(20, 20, 472, 472);
+
+            nonWovenFaceTexture = new THREE.CanvasTexture(faceCanvas);
+        }
+        function init3DViewer() {
+            if (!window.THREE) { show3DFallback('The 3D engine could not be loaded (check the connection).'); return; }
+            if (!webglAvailable()) { show3DFallback('WebGL is disabled in this browser.'); return; }
+
+            const container = $('bag-3d-canvas-container');
+            if (!container) return;
+
+            createProceduralTextures();
+
+            const width = container.clientWidth || 320;
+            const height = container.clientHeight || 256;
+
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 1000);
+            camera.position.set(0, 0.6, 4.2);
+            camera.lookAt(0, 0, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+            container.insertBefore(renderer.domElement, container.firstChild);
+            const spinner = $('spinner-3d-loading');
+            if (spinner) spinner.remove();
+
+            scene.add(new THREE.AmbientLight(0xffffff, 0.95));
+
+            const mainLight = new THREE.DirectionalLight(0xffffff, 0.85);
+            mainLight.position.set(4, 8, 6);
+            mainLight.castShadow = true;
+            mainLight.shadow.mapSize.width = 1024;
+            mainLight.shadow.mapSize.height = 1024;
+            scene.add(mainLight);
+
+            const rimLight = new THREE.DirectionalLight(0xa3e635, 0.4);
+            rimLight.position.set(-5, 3, -4);
+            scene.add(rimLight);
+
+            // Soft ground shadow plane
+            const shadowCanvas = document.createElement('canvas');
+            shadowCanvas.width = 128;
+            shadowCanvas.height = 128;
+            const sCtx = shadowCanvas.getContext('2d');
+            if (sCtx) {
+                const sGrad = sCtx.createRadialGradient(64, 64, 10, 64, 64, 60);
+                sGrad.addColorStop(0, 'rgba(0, 20, 10, 0.35)');
+                sGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                sCtx.fillStyle = sGrad;
+                sCtx.fillRect(0, 0, 128, 128);
+            }
+            const shadowPlane = new THREE.Mesh(
+                new THREE.PlaneGeometry(6, 6),
+                new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(shadowCanvas), transparent: true, depthWrite: false })
+            );
+            shadowPlane.rotation.x = -Math.PI / 2;
+            shadowPlane.position.y = -1.05;
+            scene.add(shadowPlane);
+
+            bagGroup = new THREE.Group();
+            scene.add(bagGroup);
+            /* Pointer + touch dragging */
+            const dom = renderer.domElement;
+            const startDrag = (x, y) => { isDragging = true; previousMousePosition = { x: x, y: y }; };
+            const moveDrag = (x, y) => {
+                if (!isDragging || !bagGroup) return;
+                bagGroup.rotation.y += (x - previousMousePosition.x) * 0.008;
+                bagGroup.rotation.x += (y - previousMousePosition.y) * 0.006;
+                previousMousePosition = { x: x, y: y };
+            };
+
+            dom.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY));
+            dom.addEventListener('mousemove', (e) => moveDrag(e.clientX, e.clientY));
+            window.addEventListener('mouseup', () => { isDragging = false; });
+            dom.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) startDrag(e.touches[0].clientX, e.touches[0].clientY);
+            }, { passive: true });
+            dom.addEventListener('touchmove', (e) => {
+                if (!isDragging || e.touches.length !== 1) return;
+                moveDrag(e.touches[0].clientX, e.touches[0].clientY);
+            }, { passive: true });
+            window.addEventListener('touchend', () => { isDragging = false; });
+
+            /* Keyboard rotation (the container is focusable) */
+            container.addEventListener('keydown', (e) => {
+                if (!bagGroup) return;
+                const step = 0.12;
+                if (e.key === 'ArrowLeft') { bagGroup.rotation.y -= step; autoSpin = false; e.preventDefault(); }
+                else if (e.key === 'ArrowRight') { bagGroup.rotation.y += step; autoSpin = false; e.preventDefault(); }
+                else if (e.key === 'ArrowUp') { bagGroup.rotation.x -= step; autoSpin = false; e.preventDefault(); }
+                else if (e.key === 'ArrowDown') { bagGroup.rotation.x += step; autoSpin = false; e.preventDefault(); }
+                else if (e.key === 'r' || e.key === 'R') { reset3DView(true); e.preventDefault(); }
+            });
+
+            window.addEventListener('resize', resize3D);
+
+            (function animate3D() {
+                requestAnimationFrame(animate3D);
+                if (document.hidden || !renderer || !scene || !camera) return;
+                if (autoSpin && !isDragging && bagGroup) bagGroup.rotation.y += 0.005;
+                renderer.render(scene, camera);
+            })();
+        }
+
+        function resize3D() {
+            const container = $('bag-3d-canvas-container');
+            if (!container || !renderer || !camera) return;
+            if (container.classList.contains('hidden')) return;
+            const w = container.clientWidth || 320;
+            const h = container.clientHeight || 256;
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, h);
+        }
+
+        function reset3DView(silent) {
+            if (!bagGroup) return;
+            bagGroup.rotation.set(0, 0, 0);
+            if (camera) { camera.position.set(0, 0.6, 4.2); camera.lookAt(0, 0, 0); }
+            autoSpin = true;
+            if (!silent) showToast('3D preview reset.', 'info');
+        }
+
+        function toggle3DPanel() {
+            const container = $('bag-3d-canvas-container');
+            const button = $('btn-3d-toggle');
+            const hidden = container.classList.toggle('hidden');
+            button.innerText = hidden ? 'Show' : 'Hide';
+            button.setAttribute('aria-expanded', String(!hidden));
+            if (!hidden) setTimeout(resize3D, 30);
+        }
+        /* Rebuilds the 3D bag from the currently selected catalogue model */
+        function update3DBagModel() {
+            if (!bagGroup) return;
+
+            while (bagGroup.children.length > 0) {
+                const obj = bagGroup.children[0];
+                if (obj.geometry) obj.geometry.dispose();
+                if (obj.material) {
+                    if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+                    else obj.material.dispose();
+                }
+                bagGroup.remove(obj);
+            }
+
+            const bag = currentBag();
+            const rawW = bag.width || 30;
+            const rawH = bag.height || 35;
+            const rawG = bag.gusset || 3;
+
+            const scaleFactor = 1.75 / Math.max(rawW, rawH);
+            const w = rawW * scaleFactor;
+            const h = rawH * scaleFactor;
+            const d = Math.max(rawG * scaleFactor, 0.12);
+
+            const bodySideMat = new THREE.MeshStandardMaterial({
+                color: 0x15803d,
+                roughness: 0.85,
+                metalness: 0.02,
+                bumpMap: nonWovenBumpMap,
+                bumpScale: 0.015
+            });
+
+            const frontPrintedMat = new THREE.MeshStandardMaterial({
+                map: nonWovenFaceTexture,
+                roughness: 0.8,
+                metalness: 0.02,
+                bumpMap: nonWovenBumpMap,
+                bumpScale: 0.015
+            });
+
+            const handleMat = new THREE.MeshStandardMaterial({
+                color: 0x84cc16,
+                roughness: 0.75,
+                metalness: 0.05,
+                bumpMap: nonWovenBumpMap,
+                bumpScale: 0.012
+            });
+
+            const innerDarkMat = new THREE.MeshStandardMaterial({ color: 0x0a3a1f, roughness: 0.9 });
+
+            // Material order: right, left, top, bottom, front (printed), back
+            const cubeMaterials = [bodySideMat, bodySideMat, innerDarkMat, bodySideMat, frontPrintedMat, bodySideMat];
+
+            const bodyMesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), cubeMaterials);
+            bodyMesh.castShadow = true;
+            bodyMesh.receiveShadow = true;
+            bagGroup.add(bodyMesh);
+
+            // Reinforced stitched top rim
+            const rimMesh = new THREE.Mesh(new THREE.BoxGeometry(w * 1.02, h * 0.05, d * 1.04), bodySideMat);
+            rimMesh.position.y = h / 2;
+            bagGroup.add(rimMesh);
+
+            if (bag.category === 'Box Bag') {
+                const curve = new THREE.CatmullRomCurve3([
+                    new THREE.Vector3(-w * 0.22, 0, 0),
+                    new THREE.Vector3(-w * 0.2, h * 0.38, 0.05),
+                    new THREE.Vector3(0, h * 0.48, 0.08),
+                    new THREE.Vector3(w * 0.2, h * 0.38, 0.05),
+                    new THREE.Vector3(w * 0.22, 0, 0)
+                ]);
+                const tubeGeo = new THREE.TubeGeometry(curve, 32, 0.025, 8, false);
+
+                const frontHandle = new THREE.Mesh(tubeGeo, handleMat);
+                frontHandle.position.set(0, h / 2 - 0.05, d / 2 + 0.01);
+                frontHandle.castShadow = true;
+                bagGroup.add(frontHandle);
+
+                const backHandle = new THREE.Mesh(tubeGeo, handleMat);
+                backHandle.position.set(0, h / 2 - 0.05, -d / 2 - 0.01);
+                backHandle.castShadow = true;
+                bagGroup.add(backHandle);
+
+                const padGeo = new THREE.BoxGeometry(w * 0.1, h * 0.08, 0.02);
+                [-w * 0.22, w * 0.22].forEach(px => {
+                    const padF = new THREE.Mesh(padGeo, handleMat);
+                    padF.position.set(px, h / 2 - 0.06, d / 2 + 0.015);
+                    bagGroup.add(padF);
+
+                    const padB = new THREE.Mesh(padGeo, handleMat);
+                    padB.position.set(px, h / 2 - 0.06, -d / 2 - 0.015);
+                    bagGroup.add(padB);
+                });
+
+            } else if (bag.category === 'D Cut Bag') {
+                const holeMesh = new THREE.Mesh(new THREE.BoxGeometry(w * 0.36, h * 0.09, d * 1.15), innerDarkMat);
+                holeMesh.position.set(0, h / 2 - h * 0.12, 0);
+                bagGroup.add(holeMesh);
+
+                const holeBorder = new THREE.Mesh(new THREE.BoxGeometry(w * 0.40, h * 0.11, d * 1.05), handleMat);
+                holeBorder.position.set(0, h / 2 - h * 0.12, 0);
+                bagGroup.add(holeBorder);
+
+            } else if (bag.category === 'W Cut Bag') {
+                const handleW = w * 0.2;
+                const handleH = h * 0.35;
+                const armGeo = new THREE.BoxGeometry(handleW, handleH, d * 0.95);
+
+                const leftArm = new THREE.Mesh(armGeo, handleMat);
+                leftArm.position.set(-w / 2 + handleW / 2, h / 2 + handleH / 2 - 0.02, 0);
+                bagGroup.add(leftArm);
+
+                const rightArm = new THREE.Mesh(armGeo, handleMat);
+                rightArm.position.set(w / 2 - handleW / 2, h / 2 + handleH / 2 - 0.02, 0);
+                bagGroup.add(rightArm);
+            }
+
+            bagGroup.position.set(0, -h * 0.1, 0);
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+    </script>
+
+
+
+
+
+
+
+
+</body>
+</html>
