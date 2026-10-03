@@ -3,5 +3,8 @@ dist/
 catalog.json
 catalog.json.tmp
 *.log
-_baseline/
+_baseline/*
+!_baseline/verify.mjs
+!_baseline/parity.mjs
+
 

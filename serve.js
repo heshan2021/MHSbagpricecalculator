@@ -7,9 +7,12 @@
  *   node serve.js --no-open       -> do not launch the browser
  *
  * Routing:
- *   /            -> v2 calculator      (also /calculator and /index.html)
- *   /admin       -> admin dashboard    (rate + markup control, password protected)
- *   /home        -> the little landing page
+ *   /            -> calculator          (also /calculator, /calculator.html and /index.html)
+ *   /admin       -> admin dashboard     (rate + markup control, password protected, also /dashboard)
+ *   /home        -> the little landing page (the chooser)
+ *
+ * Pages are served from dist/ (the Vite build: index.html, calculator.html, admin.html) and fall
+ * back to the untouched single-file pages in legacy/ when the project has not been built yet.
  *
  * Admin rate-card API (same-origin only, never cached):
  *   GET  /api/rates   -> { ok, empty, source, savedAt, data }  (data = catalog.json or null)
@@ -27,9 +30,24 @@ const os = require('node:os');
 const { spawn } = require('node:child_process');
 
 const ROOT = __dirname;
-const ENTRY = 'bagpricecalculator v2.html';
-const ADMIN_ENTRY = 'admin.html';
-const HOME_ENTRY = 'index.html';
+
+/* The React + Vite app is built into dist/. Until then the legacy single-file pages in legacy/
+   are served instead, so the tool works before (and without) a build. */
+const DIST = path.join(ROOT, 'dist');
+const LEGACY_DIR = path.join(ROOT, 'legacy');
+const ENTRIES = {
+    calculator: { dist: 'calculator.html', legacy: 'bagpricecalculator v2.html' },
+    admin: { dist: 'admin.html', legacy: 'admin.html' },
+    home: { dist: 'index.html', legacy: 'index.html' }
+};
+
+function builtEntry(name) {
+    const dist = path.join(DIST, ENTRIES[name].dist);
+    if (fs.existsSync(dist)) return dist;
+    const legacy = path.join(LEGACY_DIR, ENTRIES[name].legacy);
+    if (fs.existsSync(legacy)) return legacy;
+    return null;
+}
 
 /* Shared rate card written by the admin dashboard and read by the calculator. */
 const RATES_ROUTE = '/api/rates';
@@ -83,6 +101,7 @@ function send(res, status, type, body, extra) {
 }
 
 function listing() {
+
     let files = [];
     try {
         files = fs
@@ -258,6 +277,42 @@ function handleRates(req, res, done) {
     });
 }
 
+/* Streams one existing file, with the same headers the legacy server sent. */
+function serveFile(filePath, req, res, done) {
+    const type = MIME[path.extname(filePath).toLowerCase()] || 'application/octet-stream';
+    fs.stat(filePath, (err, stat) => {
+        if (err || !stat.isFile()) {
+            send(res, 404, MIME['.html'], listing());
+            return done(404);
+        }
+        res.writeHead(200, {
+            'Content-Type': type,
+            'Content-Length': stat.size,
+            'Cache-Control': 'no-store',
+            'X-Content-Type-Options': 'nosniff'
+        });
+        if (req.method === 'HEAD') {
+            res.end();
+            return done(200);
+        }
+        const stream = fs.createReadStream(filePath);
+        stream.on('error', () => res.destroy());
+        stream.pipe(res);
+        stream.on('close', () => done(200));
+    });
+}
+
+/* Shown only when neither dist/ nor legacy/ holds a page - the build has not run yet. */
+function buildHelpPage() {
+    return `<!doctype html><meta charset="utf-8"><title>Build the app first</title>
+<body style="font:15px/1.6 system-ui;max-width:36rem;margin:3rem auto;padding:0 1.25rem;color:#0f172a">
+<h1 style="font-size:1.15rem">MHS Bag Price Calculator - one build step needed</h1>
+<p>The React/Vite pages have not been built yet and the legacy copy is missing, so there is nothing to serve.</p>
+<pre style="background:#f0fdf4;border:1px solid #a7f3d0;border-radius:.6rem;padding:.9rem;overflow:auto">npm install
+npm run build</pre>
+<p>Reload this page afterwards. <code>Start Server.cmd</code> runs both steps for you.</p>`;
+}
+
 function lanAddresses() {
     const out = [];
     for (const list of Object.values(os.networkInterfaces())) {
@@ -296,39 +351,61 @@ const server = http.createServer((req, res) => {
     }
 
     // "/", "/index.html" and "/calculator" all open the v2 calculator
-    if (urlPath === '/' || urlPath === '/index.html' || urlPath === '/calculator') urlPath = '/' + ENTRY;
-    // "/admin" (and "/dashboard") open the password protected rate dashboard
-    if (urlPath === '/admin' || urlPath === '/dashboard') urlPath = '/' + ADMIN_ENTRY;
-    // "/home" serves the little landing page that index.html holds for other servers
-    if (urlPath === '/home' || urlPath === '/landing') urlPath = '/' + HOME_ENTRY;
+    /* ---- page routes: the Vite build in dist/, or the legacy pages in legacy/ ---- */
+    const PAGE_ROUTES = {
+        '/': 'calculator',
+        '/index.html': 'calculator',
+        '/calculator': 'calculator',
+        '/calculator.html': 'calculator',
+        '/admin': 'admin',
+        '/admin.html': 'admin',
+        '/dashboard': 'admin',
+        '/home': 'home',
+        '/home.html': 'home',
+        '/landing': 'home'
+    };
+    const wanted = PAGE_ROUTES[urlPath.replace(/\/+$/, '') || '/'];
+    if (wanted) {
+        const target = builtEntry(wanted);
+        if (target) return serveFile(target, req, res, done);
+        send(res, 500, MIME['.html'], buildHelpPage());
+        return done(500);
+    }
 
-    const filePath = path.join(ROOT, path.normalize(urlPath).replace(/^[/\\]+/, ''));
-    if (filePath !== ROOT && !filePath.startsWith(ROOT + path.sep)) {
+    /* ---- static files: the project folder first, then the built bundle ---- */
+    const relative = path.normalize(urlPath).replace(/^[/\\]+/, '');
+    /* The rate card is privileged - every base cost plus the administrator password hash - and this
+       server hands out the project folder, so without this guard catalog.json is also a plain
+       downloadable file at /catalog.json. It stays reachable through the API alone (GET /api/rates
+       for the document, PUT behind the x-mhs-admin key). The name is normalised, lowercased and
+       stripped of separators because Windows file names are case-insensitive, so /catalog.json,
+       /Catalog.JSON, /./catalog.json, /sub/../catalog.json and /catalog.json/ are one blocked name. */
+    const flat = relative.replace(/^[/\\]+|[/\\]+$/g, '').toLowerCase();
+    const ratesName = path.basename(RATES_FILE).toLowerCase();
+    if (flat === ratesName || flat === ratesName + '.tmp') {
         send(res, 403, MIME['.txt'], 'Forbidden');
         return done(403);
     }
 
-    fs.stat(filePath, (err, stat) => {
-        if (err || !stat.isFile()) {
-            send(res, 404, MIME['.html'], listing());
-            return done(404);
+    const candidates = [path.join(ROOT, relative), path.join(DIST, relative)];
+    for (const candidate of candidates) {
+        if (candidate !== ROOT && !candidate.startsWith(ROOT + path.sep)) {
+            send(res, 403, MIME['.txt'], 'Forbidden');
+            return done(403);
         }
-        const type = MIME[path.extname(filePath).toLowerCase()] || 'application/octet-stream';
-        res.writeHead(200, {
-            'Content-Type': type,
-            'Content-Length': stat.size,
-            'Cache-Control': 'no-store',
-            'X-Content-Type-Options': 'nosniff'
-        });
-        if (req.method === 'HEAD') {
-            res.end();
-            return done(200);
+    }
+    const filePath = candidates.find((candidate) => {
+        try {
+            return fs.statSync(candidate).isFile();
+        } catch (e) {
+            return false;
         }
-        const stream = fs.createReadStream(filePath);
-        stream.on('error', () => res.destroy());
-        stream.pipe(res);
-        stream.on('close', () => done(200));
     });
+    if (!filePath) {
+        send(res, 404, MIME['.html'], listing());
+        return done(404);
+    }
+    serveFile(filePath, req, res, done);
 });
 
 let tries = 0;
@@ -356,6 +433,7 @@ function listen(port) {
             console.log(`  Network:    http://${ip}:${port}/   (phones/tablets on the same Wi-Fi)`);
         }
         console.log(`  Serving:    ${ROOT}`);
+        console.log(`  Pages:      ${fs.existsSync(path.join(DIST, 'index.html')) ? 'dist/ (Vite build)' : 'legacy/ (single-file pages - run: npm run build)'}`);
         console.log('  Press Ctrl+C to stop.\n');
         openBrowser(url);
     });

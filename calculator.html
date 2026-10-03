@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MHS Bag Price Calculator — Instant Non-Woven Bag Quotation</title>
+    <meta name="description" content="Instant price calculator for the MHS non-woven bag catalogue: box bags, D-cut and W-cut bags with quantity based pricing tiers.">
+    <!-- Tailwind CSS (Play CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4', 100: '#dcfce7', 200: '#bbf7d0', 300: '#86efac',
+                            400: '#4ade80', 500: '#22c55e', 600: '#16a34a', 700: '#15803d',
+                            800: '#166534', 900: '#14532d'
+                        },
+                        ecolime: '#84cc16',
+                        forest: '#0f392b'
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        };
+    </script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Three.js (optional 3D preview — the calculator works without it) -->
+    <link rel="stylesheet" href="./src/styles/calculator.css">
+</head>
+
+<body class="min-h-full bg-emerald-50/40 text-slate-800 antialiased">
+<script type="module" src="/src/main/calculator.tsx"></script>
+</body>
+</html>
